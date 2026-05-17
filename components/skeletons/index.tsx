@@ -1,100 +1,85 @@
-// src/components/layout/sidebar.tsx
-"use client";
+// src/components/skeletons/index.tsx
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  ArrowLeftRight,
-  Tag,
-  Settings,
-  DollarSign,
-  LogOut,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import type { User } from "@/types";
-import { logoutAction } from "@/features/auth/actions";
-import { useTransition } from "react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { getInitials } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-
-const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
-  { href: "/categories", label: "Categories", icon: Tag },
-  { href: "/settings", label: "Settings", icon: Settings },
-];
-
-interface SidebarProps {
-  user: User;
+export function StatsSkeleton() {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="rounded-xl border border-border bg-card p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="skeleton h-4 w-24 rounded-md" />
+            <div className="skeleton size-8 rounded-md" />
+          </div>
+          <div className="skeleton h-7 w-32 rounded-md" />
+          <div className="skeleton h-3 w-20 rounded-md" />
+        </div>
+      ))}
+    </div>
+  );
 }
 
-export function Sidebar({ user }: SidebarProps) {
-  const pathname = usePathname();
-  const [isPending, startTransition] = useTransition();
-
-  function handleLogout() {
-    startTransition(() => logoutAction());
-  }
-
+export function ChartSkeleton() {
   return (
-    <aside className="w-60 shrink-0 flex flex-col border-r border-border h-full">
-      {/* Logo */}
-      <div className="px-4 py-5 flex items-center gap-2.5 border-b border-border">
-        <div className="size-7 rounded-md bg-primary flex items-center justify-center shrink-0">
-          <DollarSign className="size-4 text-primary-foreground" strokeWidth={2.5} />
-        </div>
-        <span className="font-semibold text-base tracking-tight">Fintrack</span>
+    <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+      <div className="space-y-1">
+        <div className="skeleton h-4 w-28 rounded-md" />
+        <div className="skeleton h-3 w-44 rounded-md" />
       </div>
+      <div className="skeleton h-[240px] w-full rounded-lg" />
+    </div>
+  );
+}
 
-      {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
-        {NAV_ITEMS.map((item) => {
-          const isActive = pathname.startsWith(item.href);
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
-              )}
-            >
-              <Icon className="size-4 shrink-0" />
-              {item.label}
-            </Link>
-          );
-        })}
-      </nav>
+export function TransactionListSkeleton() {
+  return (
+    <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+        <div className="skeleton h-4 w-36 rounded-md" />
+        <div className="skeleton h-3 w-16 rounded-md" />
+      </div>
+      <div className="divide-y divide-border">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-4 px-5 py-3.5">
+            <div className="skeleton size-9 rounded-full" />
+            <div className="flex-1 space-y-1.5">
+              <div className="skeleton h-3.5 w-40 rounded-md" />
+              <div className="skeleton h-3 w-24 rounded-md" />
+            </div>
+            <div className="skeleton h-4 w-16 rounded-md" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
-      {/* User */}
-      <div className="px-3 py-4 border-t border-border space-y-1">
-        <div className="flex items-center gap-3 px-3 py-2">
-          <Avatar className="size-7">
-            <AvatarFallback className="text-xs bg-primary/10 text-primary">
-              {getInitials(user.name ?? user.email)}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{user.name ?? "User"}</p>
-            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+export function CategoryGridSkeleton() {
+  return (
+    <div className="space-y-8">
+      {Array.from({ length: 2 }).map((_, si) => (
+        <div key={si}>
+          <div className="skeleton h-5 w-20 rounded-md mb-3" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="rounded-xl border border-border bg-card p-4 flex items-center gap-3">
+                <div className="skeleton size-9 rounded-full" />
+                <div className="space-y-1.5">
+                  <div className="skeleton h-3.5 w-24 rounded-md" />
+                  <div className="skeleton h-3 w-16 rounded-md" />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full justify-start text-muted-foreground hover:text-foreground gap-3 px-3"
-          onClick={handleLogout}
-          disabled={isPending}
-        >
-          <LogOut className="size-4" />
-          {isPending ? "Signing out…" : "Sign out"}
-        </Button>
-      </div>
-    </aside>
+      ))}
+    </div>
+  );
+}
+
+export function PageHeaderSkeleton() {
+  return (
+    <div className="space-y-1">
+      <div className="skeleton h-8 w-40 rounded-md" />
+      <div className="skeleton h-4 w-56 rounded-md" />
+    </div>
   );
 }

@@ -5,7 +5,7 @@ import type { Category, TransactionWithCategory } from "@/types";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { TransactionType } from "@prisma/client";
 import { cn } from "@/lib/utils";
-import { Trash2, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DeleteTransactionButton } from "./delete-transaction-button";
 import { EditTransactionDialog } from "./edit-transaction-dialog";
@@ -17,7 +17,6 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 interface TransactionListProps {
@@ -56,7 +55,9 @@ export function TransactionList({
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-muted-foreground">{total} transaction{total !== 1 ? "s" : ""}</p>
+      <p className="text-xs text-muted-foreground">
+        {total} transaction{total !== 1 ? "s" : ""}
+      </p>
 
       <div className="rounded-xl border border-border bg-card overflow-hidden">
         <div className="divide-y divide-border">
@@ -65,8 +66,11 @@ export function TransactionList({
             return (
               <div key={tx.id} className="flex items-center gap-4 px-5 py-4 group">
                 <div
-                  className="size-9 rounded-full flex items-center justify-center shrink-0 text-sm font-medium"
-                  style={{ backgroundColor: `${tx.category.color}20`, color: tx.category.color }}
+                  className="size-9 rounded-full flex items-center justify-center shrink-0 text-sm font-semibold"
+                  style={{
+                    backgroundColor: `${tx.category.color}20`,
+                    color: tx.category.color,
+                  }}
                 >
                   {tx.category.name.charAt(0)}
                 </div>
@@ -76,22 +80,24 @@ export function TransactionList({
                   <p className="text-xs text-muted-foreground">
                     {tx.category.name} · {formatDate(tx.date)}
                     {tx.isRecurring && (
-                      <span className="ml-1.5 px-1 py-0.5 bg-primary/10 text-primary rounded text-[10px] font-medium">
+                      <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 bg-primary/10 text-primary rounded text-[10px] font-medium">
                         Recurring
                       </span>
                     )}
                   </p>
                 </div>
 
-                <span className={cn(
-                  "text-sm font-semibold tabular-nums",
-                  isIncome ? "text-income" : "text-expense"
-                )}>
-                  {isIncome ? "+" : "-"}{formatCurrency(Number(tx.amount), tx.category.color ? tx.category.color : "USD")}
+                <span
+                  className={cn(
+                    "text-sm font-semibold tabular-nums shrink-0",
+                    isIncome ? "text-income" : "text-expense"
+                  )}
+                >
+                  {isIncome ? "+" : "-"}
                   {formatCurrency(Number(tx.amount))}
                 </span>
 
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                   <Button
                     variant="ghost"
                     size="icon"

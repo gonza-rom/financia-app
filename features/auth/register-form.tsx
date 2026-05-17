@@ -1,14 +1,14 @@
-// src/features/auth/login-form.tsx
+// src/features/auth/register-form.tsx
 "use client";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { loginAction } from "./actions";
+import { registerAction } from "./actions";
 import { useTransition } from "react";
 import { useToast } from "@/hooks/use-toast";
 
-export function LoginForm() {
+export function RegisterForm() {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -17,7 +17,7 @@ export function LoginForm() {
     const formData = new FormData(e.currentTarget);
 
     startTransition(async () => {
-      const result = await loginAction(formData);
+      const result = await registerAction(formData);
       if (result?.error) {
         toast({ variant: "destructive", title: "Error", description: result.error });
       }
@@ -26,6 +26,19 @@ export function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="name">Name</Label>
+        <Input
+          id="name"
+          name="name"
+          type="text"
+          placeholder="Your name"
+          required
+          autoComplete="name"
+          disabled={isPending}
+        />
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <Input
@@ -47,13 +60,15 @@ export function LoginForm() {
           type="password"
           placeholder="••••••••"
           required
-          autoComplete="current-password"
+          autoComplete="new-password"
+          minLength={8}
           disabled={isPending}
         />
+        <p className="text-xs text-muted-foreground">At least 8 characters</p>
       </div>
 
       <Button type="submit" className="w-full" disabled={isPending}>
-        {isPending ? "Signing in…" : "Sign in"}
+        {isPending ? "Creating account…" : "Create account"}
       </Button>
     </form>
   );

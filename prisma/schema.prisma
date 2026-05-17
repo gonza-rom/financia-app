@@ -1,0 +1,89 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum TipoTransaccion {
+  INGRESO
+  GASTO
+}
+
+enum FrecuenciaRecurrente {
+  DIARIO
+  SEMANAL
+  MENSUAL
+  ANUAL
+}
+
+// ─── Modelos ──────────────────────────────────────────────────────────────────
+
+model Usuario {
+  id            String         @id // coincide con auth.users.id de Supabase
+  email         String         @unique
+  nombre        String?
+  moneda        String         @default("ARS")
+  creadoEn      DateTime       @default(now()) @map("creado_en")
+  actualizadoEn DateTime       @updatedAt @map("actualizado_en")
+  transacciones Transaccion[]
+  categorias    Categoria[]
+
+  @@map("usuarios")
+}
+
+model Categoria {
+  id            String           @id @default(cuid())
+  nombre        String
+  icono         String           @default("circle")
+  color         String           @default("#6b7280")
+  tipo          TipoTransaccion
+  usuarioId     String           @map("usuario_id")
+  creadoEn      DateTime         @default(now()) @map("creado_en")
+  actualizadoEn DateTime         @updatedAt @map("actualizado_en")
+  usuario       Usuario          @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  transacciones Transaccion[]
+
+  @@index([usuarioId])
+  @@index([usuarioId, tipo])
+  @@map("categorias")
+}
+
+model Transaccion {
+  id              String               @id @default(cuid())
+  monto           Decimal              @db.Decimal(12, 2)
+  descripcion     String
+  tipo            TipoTransaccion
+  fecha           DateTime
+  notas           String?
+  esRecurrente    Boolean              @default(false) @map("es_recurrente")
+  usuarioId       String               @map("usuario_id")
+  categoriaId     String               @map("categoria_id")
+  creadoEn        DateTime             @default(now()) @map("creado_en")
+  actualizadoEn   DateTime             @updatedAt @map("actualizado_en")
+  usuario         Usuario              @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  categoria       Categoria            @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
+  reglaRecurrente ReglaRecurrente?
+
+  @@index([usuarioId])
+  @@index([usuarioId, fecha])
+  @@index([usuarioId, tipo])
+  @@index([usuarioId, categoriaId])
+  @@map("transacciones")
+}
+
+model ReglaRecurrente {
+  id            String               @id @default(cuid())
+  transaccionId String               @unique @map("transaccion_id")
+  frecuencia    FrecuenciaRecurrente
+  proximaFecha  DateTime             @map("proxima_fecha")
+  fechaFin      DateTime?            @map("fecha_fin")
+  creadoEn      DateTime             @default(now()) @map("creado_en")
+  transaccion   Transaccion          @relation(fields: [transaccionId], references: [id], onDelete: Cascade)
+
+  @@map("reglas_recurrentes")
+}

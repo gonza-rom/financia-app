@@ -1,21 +1,28 @@
-// src/app/dashboard/loading.tsx
-import { StatsSkeleton, ChartSkeleton, TransactionListSkeleton } from "@/components/skeletons";
+// app/categories/page.tsx
+import type { Metadata } from "next";
+import { getCurrentUser } from "@/lib/auth";
+import { getCategoriesWithStats } from "@/features/categories/queries";
+import { CategoryGrid } from "@/features/categories/category-grid";
+import { AddCategoryButton } from "@/features/categories/add-category-button";
 
-export default function DashboardLoading() {
+export const metadata: Metadata = { title: "Categories" };
+
+export default async function CategoriesPage() {
+  const user = await getCurrentUser();
+  const categories = await getCategoriesWithStats(user.id);
+
   return (
-    <div className="space-y-6">
-      <div className="space-y-1">
-        <div className="skeleton h-8 w-36 rounded-md" />
-        <div className="skeleton h-4 w-56 rounded-md" />
-      </div>
-      <StatsSkeleton />
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2">
-          <ChartSkeleton />
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Categories</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Organize your transactions
+          </p>
         </div>
-        <ChartSkeleton />
+        <AddCategoryButton />
       </div>
-      <TransactionListSkeleton />
+      <CategoryGrid categories={categories} />
     </div>
   );
 }
