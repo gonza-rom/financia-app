@@ -2,77 +2,78 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
-import { getTransactions } from "@/features/transactions/queries";
-import { getCachedCategories } from "@/features/categories/queries";
+import { getTransacciones } from "@/features/transactions/queries";
+import { getCategorias } from "@/features/categories/queries";
 import { TransactionList } from "@/features/transactions/transaction-list";
 import { TransactionFiltersBar } from "@/features/transactions/transaction-filters";
 import { AddTransactionButton } from "@/features/transactions/add-transaction-button";
 import { TransactionListSkeleton } from "@/components/skeletons";
-import { TransactionType } from "@prisma/client";
+import { TipoTransaccion } from "@prisma/client";
 
-export const metadata: Metadata = { title: "Transactions" };
+export const metadata: Metadata = { title: "Transacciones" };
 
 interface PageProps {
   searchParams: Promise<{
-    page?: string;
-    type?: string;
-    categoryId?: string;
-    search?: string;
+    pagina?: string;
+    tipo?: string;
+    categoriaId?: string;
+    busqueda?: string;
   }>;
 }
 
-async function TransactionsData({
-  userId,
+async function TransaccionesData({
+  usuarioId,
+  moneda,
   searchParams,
 }: {
-  userId: string;
+  usuarioId: string;
+  moneda: string;
   searchParams: Awaited<PageProps["searchParams"]>;
 }) {
-  const page = Number(searchParams.page ?? "1");
-  const type = searchParams.type as TransactionType | undefined;
+  const pagina = Number(searchParams.pagina ?? "1");
+  const tipo = searchParams.tipo as TipoTransaccion | undefined;
 
-  const [{ data: transactions, total, totalPages }, categories] = await Promise.all([
-    getTransactions(userId, {
-      page,
-      limit: 20,
-      type,
-      categoryId: searchParams.categoryId,
-      search: searchParams.search,
+  const [{ data: transacciones, total, totalPaginas }, categorias] = await Promise.all([
+    getTransacciones(usuarioId, {
+      pagina,
+      limite: 20,
+      tipo,
+      categoriaId: searchParams.categoriaId,
+      busqueda: searchParams.busqueda,
     }),
-    getCachedCategories(userId),
+    getCategorias(usuarioId),
   ]);
 
   return (
     <TransactionList
-      transactions={transactions}
-      categories={categories}
+      transacciones={transacciones}
+      categorias={categorias}
+      moneda={moneda}
       total={total}
-      page={page}
-      totalPages={totalPages}
+      pagina={pagina}
+      totalPaginas={totalPaginas}
     />
   );
 }
 
-export default async function TransactionsPage({ searchParams }: PageProps) {
-  const [user, params] = await Promise.all([getCurrentUser(), searchParams]);
-  const categories = await getCachedCategories(user.id);
+export default async function TransaccionesPage({ searchParams }: PageProps) {
+  const [usuario, params] = await Promise.all([getCurrentUser(), searchParams]);
+  const categorias = await getCategorias(usuario.id);
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Transactions</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Manage your income and expenses
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">Transacciones</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Tus ingresos y gastos</p>
         </div>
-        <AddTransactionButton categories={categories} />
+        <AddTransactionButton categorias={categorias} />
       </div>
 
-      <TransactionFiltersBar categories={categories} />
+      <TransactionFiltersBar categorias={categorias} />
 
       <Suspense key={JSON.stringify(params)} fallback={<TransactionListSkeleton />}>
-        <TransactionsData userId={user.id} searchParams={params} />
+        <TransaccionesData usuarioId={usuario.id} moneda={usuario.moneda} searchParams={params} />
       </Suspense>
     </div>
   );

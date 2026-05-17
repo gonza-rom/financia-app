@@ -1,89 +1,91 @@
-// src/types/index.ts
-import type { Category, RecurringFreq, RecurringRule, Transaction, TransactionType, User } from "@prisma/client";
+// types/index.ts
+import type {
+  Categoria,
+  FrecuenciaRecurrente,
+  ReglaRecurrente,
+  Transaccion,
+  TipoTransaccion,
+  Usuario,
+} from "@prisma/client";
 
-// ─── Re-exports from Prisma ───────────────────────────────────────────────────
-export type { Category, RecurringFreq, RecurringRule, Transaction, TransactionType, User };
+// ─── Re-exports desde Prisma ─────────────────────────────────────────────────
+export type { Categoria, FrecuenciaRecurrente, ReglaRecurrente, Transaccion, TipoTransaccion, Usuario };
 
-// ─── Extended types ───────────────────────────────────────────────────────────
-export type TransactionWithCategory = Transaction & {
-  category: Category;
+// ─── Tipos extendidos ─────────────────────────────────────────────────────────
+export type TransaccionConCategoria = Transaccion & {
+  categoria: Categoria;
 };
 
-export type CategoryWithStats = Category & {
-  _count: { transactions: number };
-  totalAmount: number;
+export type CategoriaConEstadisticas = Categoria & {
+  _count: { transacciones: number };
+  montoTotal: number;
 };
 
-// ─── Dashboard types ──────────────────────────────────────────────────────────
-export interface DashboardStats {
-  totalBalance: number;
-  monthlyIncome: number;
-  monthlyExpenses: number;
-  monthlySavings: number;
-  incomeChange: number;
-  expenseChange: number;
-  savingsRate: number;
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+export interface EstadisticasDashboard {
+  balanceTotal: number;
+  ingresoMensual: number;
+  gastoMensual: number;
+  ahorroMensual: number;
+  cambioIngreso: number;
+  cambioGasto: number;
+  tasaAhorro: number;
 }
 
-export interface MonthlyData {
-  month: string;
-  income: number;
-  expenses: number;
-  savings: number;
+export interface DatosMensuales {
+  mes: string;
+  ingreso: number;
+  gastos: number;
+  ahorro: number;
 }
 
-export interface CategoryBreakdown {
-  categoryId: string;
-  categoryName: string;
+export interface DesgloseCategoria {
+  categoriaId: string;
+  nombreCategoria: string;
   color: string;
-  icon: string;
-  amount: number;
-  percentage: number;
-  count: number;
+  icono: string;
+  monto: number;
+  porcentaje: number;
+  cantidad: number;
 }
 
-// ─── Form types ───────────────────────────────────────────────────────────────
-export interface TransactionFormData {
-  amount: number;
-  description: string;
-  type: TransactionType;
-  date: Date;
-  categoryId: string;
-  isRecurring: boolean;
-  notes?: string;
+// ─── Formularios ──────────────────────────────────────────────────────────────
+export interface FormularioTransaccion {
+  monto: number;
+  descripcion: string;
+  tipo: TipoTransaccion;
+  fecha: Date;
+  categoriaId: string;
+  esRecurrente: boolean;
+  notas?: string;
 }
 
-export interface CategoryFormData {
-  name: string;
-  icon: string;
+export interface FormularioCategoria {
+  nombre: string;
+  icono: string;
   color: string;
-  type: TransactionType;
+  tipo: TipoTransaccion;
 }
 
-// ─── Action Results ───────────────────────────────────────────────────────────
-export type ActionResult<T = void> =
+// ─── Resultados de acciones ───────────────────────────────────────────────────
+export type ResultadoAccion<T = void> =
   | { success: true; data: T }
   | { success: false; error: string };
 
-// ─── Pagination ───────────────────────────────────────────────────────────────
-export interface PaginationParams {
-  page?: number;
-  limit?: number;
-}
-
-export interface PaginatedResult<T> {
+// ─── Paginación ───────────────────────────────────────────────────────────────
+export interface ResultadoPaginado<T> {
   data: T[];
   total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+  pagina: number;
+  limite: number;
+  totalPaginas: number;
 }
 
-// ─── Filters ─────────────────────────────────────────────────────────────────
-export interface TransactionFilters {
-  type?: TransactionType;
-  categoryId?: string;
-  dateFrom?: Date;
-  dateTo?: Date;
-  search?: string;
+// ─── Filtros ──────────────────────────────────────────────────────────────────
+export interface FiltrosTransaccion {
+  tipo?: TipoTransaccion;
+  categoriaId?: string;
+  fechaDesde?: Date;
+  fechaHasta?: Date;
+  busqueda?: string;
 }

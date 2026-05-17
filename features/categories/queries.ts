@@ -1,40 +1,38 @@
-// src/features/categories/queries.ts
+// features/categories/queries.ts
 import { prisma } from "@/lib/prisma";
-import type { CategoryWithStats } from "@/types";
+import type { CategoriaConEstadisticas } from "@/types";
 import { unstable_cache } from "next/cache";
 
 export const getCachedCategories = unstable_cache(
-  async (userId: string): Promise<CategoryWithStats[]> => {
-    const categories = await prisma.category.findMany({
-      where: { userId },
-      include: {
-        _count: { select: { transactions: true } },
-      },
-      orderBy: { name: "asc" },
+  async (usuarioId: string): Promise<CategoriaConEstadisticas[]> => {
+    const categorias = await prisma.categoria.findMany({
+      where: { usuarioId },
+      include: { _count: { select: { transacciones: true } } },
+      orderBy: { nombre: "asc" },
     });
 
-    // Get totals per category
-    const totals = await prisma.transaction.groupBy({
-      by: ["categoryId"],
-      where: { userId },
-      _sum: { amount: true },
+    const totales = await prisma.transaccion.groupBy({
+      by: ["categoriaId"],
+      where: { usuarioId },
+      _sum: { monto: true },
     });
 
-    return categories.map((cat) => ({
+    return categorias.map((cat) => ({
       ...cat,
-      totalAmount: Number(
-        totals.find((t) => t.categoryId === cat.id)?._sum.amount ?? 0
-      ),
+      montoTotal: Number(totales.find((t) => t.categoriaId === cat.id)?._sum.monto ?? 0),
     }));
   },
-  ["categories"],
-  { revalidate: 60, tags: ["categories"] }
+  ["categorias"],
+  { revalidate: 60, tags: ["categorias"] }
 );
 
-// Non-cached version for use in forms (always fresh)
-export async function getCategories(userId: string) {
-  return prisma.category.findMany({
-    where: { userId },
-    orderBy: { name: "asc" },
+export async function getCategorias(usuarioId: string) {
+  return prisma.categoria.findMany({
+    where: { usuarioId },
+    orderBy: { nombre: "asc" },
   });
+}
+
+export async function getCategoriesWithStats(usuarioId: string) {
+  return getCachedCategories(usuarioId);
 }

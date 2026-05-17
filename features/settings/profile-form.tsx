@@ -1,4 +1,4 @@
-// src/features/settings/profile-form.tsx
+// features/settings/profile-form.tsx
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -6,51 +6,45 @@ import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import type { User } from "@/types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { Usuario } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { updateProfileAction } from "./actions";
 
-interface ProfileFormData {
-  name: string;
-  currency: string;
+interface FormularioPerfil {
+  nombre: string;
+  moneda: string;
 }
 
-const CURRENCIES = [
-  { value: "USD", label: "USD — US Dollar" },
+const MONEDAS = [
+  { value: "ARS", label: "ARS — Peso Argentino" },
+  { value: "USD", label: "USD — Dólar Estadounidense" },
   { value: "EUR", label: "EUR — Euro" },
-  { value: "GBP", label: "GBP — British Pound" },
-  { value: "ARS", label: "ARS — Argentine Peso" },
-  { value: "BRL", label: "BRL — Brazilian Real" },
-  { value: "MXN", label: "MXN — Mexican Peso" },
-  { value: "CLP", label: "CLP — Chilean Peso" },
-  { value: "COP", label: "COP — Colombian Peso" },
-  { value: "CAD", label: "CAD — Canadian Dollar" },
-  { value: "JPY", label: "JPY — Japanese Yen" },
+  { value: "BRL", label: "BRL — Real Brasileño" },
+  { value: "CLP", label: "CLP — Peso Chileno" },
+  { value: "MXN", label: "MXN — Peso Mexicano" },
+  { value: "COP", label: "COP — Peso Colombiano" },
+  { value: "UYU", label: "UYU — Peso Uruguayo" },
+  { value: "GBP", label: "GBP — Libra Esterlina" },
+  { value: "JPY", label: "JPY — Yen Japonés" },
 ];
 
-export function ProfileForm({ user }: { user: User }) {
+export function ProfileForm({ user }: { user: Usuario }) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
-  const { register, handleSubmit, setValue } = useForm<ProfileFormData>({
+  const { register, handleSubmit, setValue } = useForm<FormularioPerfil>({
     defaultValues: {
-      name: user.name ?? "",
-      currency: user.currency,
+      nombre: user.nombre ?? "",
+      moneda: user.moneda,
     },
   });
 
-  function onSubmit(data: ProfileFormData) {
+  function onSubmit(data: FormularioPerfil) {
     startTransition(async () => {
       const result = await updateProfileAction(data);
       if (result.success) {
-        toast({ title: "Profile updated" });
+        toast({ title: "Perfil actualizado" });
       } else {
         toast({ variant: "destructive", title: "Error", description: result.error });
       }
@@ -62,35 +56,25 @@ export function ProfileForm({ user }: { user: User }) {
       <div className="space-y-2">
         <Label>Email</Label>
         <Input value={user.email} disabled className="opacity-60" />
-        <p className="text-xs text-muted-foreground">Email cannot be changed here.</p>
+        <p className="text-xs text-muted-foreground">El email no se puede cambiar aquí.</p>
       </div>
-
       <div className="space-y-2">
-        <Label htmlFor="name">Display Name</Label>
-        <Input id="name" {...register("name")} />
+        <Label htmlFor="nombre">Nombre</Label>
+        <Input id="nombre" {...register("nombre")} />
       </div>
-
       <div className="space-y-2">
-        <Label>Currency</Label>
-        <Select
-          defaultValue={user.currency}
-          onValueChange={(v) => setValue("currency", v)}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
+        <Label>Moneda</Label>
+        <Select defaultValue={user.moneda} onValueChange={(v) => setValue("moneda", v)}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
-            {CURRENCIES.map((c) => (
-              <SelectItem key={c.value} value={c.value}>
-                {c.label}
-              </SelectItem>
+            {MONEDAS.map((m) => (
+              <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
-
       <Button type="submit" disabled={isPending}>
-        {isPending ? "Saving…" : "Save Changes"}
+        {isPending ? "Guardando…" : "Guardar Cambios"}
       </Button>
     </form>
   );

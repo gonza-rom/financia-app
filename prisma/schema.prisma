@@ -7,8 +7,6 @@ datasource db {
   provider = "postgresql"
 }
 
-// ─── Enums ────────────────────────────────────────────────────────────────────
-
 enum TipoTransaccion {
   INGRESO
   GASTO
@@ -21,15 +19,13 @@ enum FrecuenciaRecurrente {
   ANUAL
 }
 
-// ─── Modelos ──────────────────────────────────────────────────────────────────
-
 model Usuario {
-  id            String         @id // coincide con auth.users.id de Supabase
-  email         String         @unique
+  id            String        @id
+  email         String        @unique
   nombre        String?
-  moneda        String         @default("ARS")
-  creadoEn      DateTime       @default(now()) @map("creado_en")
-  actualizadoEn DateTime       @updatedAt @map("actualizado_en")
+  moneda        String        @default("ARS")
+  creadoEn      DateTime      @default(now()) @map("creado_en")
+  actualizadoEn DateTime      @updatedAt @map("actualizado_en")
   transacciones Transaccion[]
   categorias    Categoria[]
 
@@ -37,15 +33,15 @@ model Usuario {
 }
 
 model Categoria {
-  id            String           @id @default(cuid())
+  id            String          @id @default(cuid())
   nombre        String
-  icono         String           @default("circle")
-  color         String           @default("#6b7280")
+  icono         String          @default("circle")
+  color         String          @default("#6b7280")
   tipo          TipoTransaccion
-  usuarioId     String           @map("usuario_id")
-  creadoEn      DateTime         @default(now()) @map("creado_en")
-  actualizadoEn DateTime         @updatedAt @map("actualizado_en")
-  usuario       Usuario          @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuarioId     String          @map("usuario_id")
+  creadoEn      DateTime        @default(now()) @map("creado_en")
+  actualizadoEn DateTime        @updatedAt @map("actualizado_en")
+  usuario       Usuario         @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   transacciones Transaccion[]
 
   @@index([usuarioId])

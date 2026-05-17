@@ -1,30 +1,25 @@
-// src/features/transactions/add-transaction-button.tsx
+// features/transactions/add-transaction-button.tsx
 "use client";
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { Category } from "@/types";
+import type { Categoria } from "@/types";
 import { TransactionDialog } from "./transaction-dialog";
 
 interface AddTransactionButtonProps {
-  categories: Category[];
+  categorias: Categoria[];
 }
 
-export function AddTransactionButton({ categories }: AddTransactionButtonProps) {
+export function AddTransactionButton({ categorias }: AddTransactionButtonProps) {
   const [open, setOpen] = useState(false);
-
   return (
     <>
       <Button onClick={() => setOpen(true)} size="sm" className="gap-1.5">
         <Plus className="size-4" />
-        Add Transaction
+        Nueva Transacción
       </Button>
-      <TransactionDialog
-        categories={categories}
-        open={open}
-        onOpenChange={setOpen}
-      />
+      <TransactionDialog categorias={categorias} open={open} onOpenChange={setOpen} />
     </>
   );
 }

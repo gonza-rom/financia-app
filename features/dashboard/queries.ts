@@ -1,62 +1,59 @@
-// src/features/dashboard/queries.ts
+// features/dashboard/queries.ts
 import { prisma } from "@/lib/prisma";
-import type { DashboardStats } from "@/types";
-import { TransactionType } from "@prisma/client";
+import type { EstadisticasDashboard } from "@/types";
+import { TipoTransaccion } from "@prisma/client";
 import { unstable_cache } from "next/cache";
 import { getMonthRange, getPreviousMonthRange, calculatePercentageChange } from "@/lib/utils";
 
 export const getCachedDashboardStats = unstable_cache(
-  async (userId: string): Promise<DashboardStats> => {
-    const now = new Date();
-    const { from: monthFrom, to: monthTo } = getMonthRange(now);
-    const { from: prevFrom, to: prevTo } = getPreviousMonthRange(now);
+  async (usuarioId: string): Promise<EstadisticasDashboard> => {
+    const ahora = new Date();
+    const { from: desdeActual, to: hastaActual } = getMonthRange(ahora);
+    const { from: desdeAnterior, to: hastaAnterior } = getPreviousMonthRange(ahora);
 
-    const [currentMonth, previousMonth, allTime] = await Promise.all([
-      // Current month totals
-      prisma.transaction.groupBy({
-        by: ["type"],
-        where: { userId, date: { gte: monthFrom, lte: monthTo } },
-        _sum: { amount: true },
+    const [mesActual, mesAnterior, todoElTiempo] = await Promise.all([
+      prisma.transaccion.groupBy({
+        by: ["tipo"],
+        where: { usuarioId, fecha: { gte: desdeActual, lte: hastaActual } },
+        _sum: { monto: true },
       }),
-      // Previous month totals
-      prisma.transaction.groupBy({
-        by: ["type"],
-        where: { userId, date: { gte: prevFrom, lte: prevTo } },
-        _sum: { amount: true },
+      prisma.transaccion.groupBy({
+        by: ["tipo"],
+        where: { usuarioId, fecha: { gte: desdeAnterior, lte: hastaAnterior } },
+        _sum: { monto: true },
       }),
-      // All-time balance
-      prisma.transaction.groupBy({
-        by: ["type"],
-        where: { userId },
-        _sum: { amount: true },
+      prisma.transaccion.groupBy({
+        by: ["tipo"],
+        where: { usuarioId },
+        _sum: { monto: true },
       }),
     ]);
 
-    const getAmount = (
-      data: { type: TransactionType; _sum: { amount: unknown } }[],
-      type: TransactionType
-    ) => Number(data.find((r) => r.type === type)?._sum.amount ?? 0);
+    const getMonto = (
+      data: { tipo: TipoTransaccion; _sum: { monto: unknown } }[],
+      tipo: TipoTransaccion
+    ) => Number(data.find((r) => r.tipo === tipo)?._sum.monto ?? 0);
 
-    const monthlyIncome = getAmount(currentMonth, TransactionType.INCOME);
-    const monthlyExpenses = getAmount(currentMonth, TransactionType.EXPENSE);
-    const prevIncome = getAmount(previousMonth, TransactionType.INCOME);
-    const prevExpenses = getAmount(previousMonth, TransactionType.EXPENSE);
-    const allIncome = getAmount(allTime, TransactionType.INCOME);
-    const allExpenses = getAmount(allTime, TransactionType.EXPENSE);
+    const ingresoMensual = getMonto(mesActual, TipoTransaccion.INGRESO);
+    const gastoMensual = getMonto(mesActual, TipoTransaccion.GASTO);
+    const ingresoAnterior = getMonto(mesAnterior, TipoTransaccion.INGRESO);
+    const gastoAnterior = getMonto(mesAnterior, TipoTransaccion.GASTO);
+    const ingresoTotal = getMonto(todoElTiempo, TipoTransaccion.INGRESO);
+    const gastoTotal = getMonto(todoElTiempo, TipoTransaccion.GASTO);
 
-    const monthlySavings = monthlyIncome - monthlyExpenses;
-    const savingsRate = monthlyIncome > 0 ? (monthlySavings / monthlyIncome) * 100 : 0;
+    const ahorroMensual = ingresoMensual - gastoMensual;
+    const tasaAhorro = ingresoMensual > 0 ? (ahorroMensual / ingresoMensual) * 100 : 0;
 
     return {
-      totalBalance: allIncome - allExpenses,
-      monthlyIncome,
-      monthlyExpenses,
-      monthlySavings,
-      incomeChange: calculatePercentageChange(monthlyIncome, prevIncome),
-      expenseChange: calculatePercentageChange(monthlyExpenses, prevExpenses),
-      savingsRate,
+      balanceTotal: ingresoTotal - gastoTotal,
+      ingresoMensual,
+      gastoMensual,
+      ahorroMensual,
+      cambioIngreso: calculatePercentageChange(ingresoMensual, ingresoAnterior),
+      cambioGasto: calculatePercentageChange(gastoMensual, gastoAnterior),
+      tasaAhorro,
     };
   },
   ["dashboard-stats"],
-  { revalidate: 60, tags: ["transactions"] }
+  { revalidate: 60, tags: ["transacciones"] }
 );

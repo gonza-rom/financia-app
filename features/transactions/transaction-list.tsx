@@ -1,9 +1,9 @@
-// src/features/transactions/transaction-list.tsx
+// features/transactions/transaction-list.tsx
 "use client";
 
-import type { Category, TransactionWithCategory } from "@/types";
+import type { Categoria, TransaccionConCategoria } from "@/types";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { TransactionType } from "@prisma/client";
+import { TipoTransaccion } from "@prisma/client";
 import { cn } from "@/lib/utils";
 import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,44 +11,35 @@ import { DeleteTransactionButton } from "./delete-transaction-button";
 import { EditTransactionDialog } from "./edit-transaction-dialog";
 import { useState } from "react";
 import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
+  Pagination, PaginationContent, PaginationItem,
+  PaginationNext, PaginationPrevious,
 } from "@/components/ui/pagination";
 import { useSearchParams } from "next/navigation";
 
 interface TransactionListProps {
-  transactions: TransactionWithCategory[];
-  categories: Category[];
+  transacciones: TransaccionConCategoria[];
+  categorias: Categoria[];
+  moneda: string;
   total: number;
-  page: number;
-  totalPages: number;
+  pagina: number;
+  totalPaginas: number;
 }
 
-export function TransactionList({
-  transactions,
-  categories,
-  total,
-  page,
-  totalPages,
-}: TransactionListProps) {
+export function TransactionList({ transacciones, categorias, moneda, total, pagina, totalPaginas }: TransactionListProps) {
   const searchParams = useSearchParams();
-  const [editingId, setEditingId] = useState<string | null>(null);
-
-  const editingTx = transactions.find((t) => t.id === editingId);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const editandoTx = transacciones.find((t) => t.id === editandoId);
 
   function buildPageHref(p: number) {
     const params = new URLSearchParams(searchParams.toString());
-    params.set("page", String(p));
+    params.set("pagina", String(p));
     return `?${params.toString()}`;
   }
 
-  if (transactions.length === 0) {
+  if (transacciones.length === 0) {
     return (
       <div className="rounded-xl border border-border bg-card p-10 text-center">
-        <p className="text-muted-foreground text-sm">No transactions found</p>
+        <p className="text-muted-foreground text-sm">No se encontraron transacciones</p>
       </div>
     );
   }
@@ -56,54 +47,36 @@ export function TransactionList({
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">
-        {total} transaction{total !== 1 ? "s" : ""}
+        {total} transacción{total !== 1 ? "es" : ""}
       </p>
-
       <div className="rounded-xl border border-border bg-card overflow-hidden">
         <div className="divide-y divide-border">
-          {transactions.map((tx) => {
-            const isIncome = tx.type === TransactionType.INCOME;
+          {transacciones.map((tx) => {
+            const esIngreso = tx.tipo === TipoTransaccion.INGRESO;
             return (
               <div key={tx.id} className="flex items-center gap-4 px-5 py-4 group">
                 <div
                   className="size-9 rounded-full flex items-center justify-center shrink-0 text-sm font-semibold"
-                  style={{
-                    backgroundColor: `${tx.category.color}20`,
-                    color: tx.category.color,
-                  }}
+                  style={{ backgroundColor: `${tx.categoria.color}20`, color: tx.categoria.color }}
                 >
-                  {tx.category.name.charAt(0)}
+                  {tx.categoria.nombre.charAt(0)}
                 </div>
-
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{tx.description}</p>
+                  <p className="text-sm font-medium truncate">{tx.descripcion}</p>
                   <p className="text-xs text-muted-foreground">
-                    {tx.category.name} · {formatDate(tx.date)}
-                    {tx.isRecurring && (
+                    {tx.categoria.nombre} · {formatDate(tx.fecha)}
+                    {tx.esRecurrente && (
                       <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 bg-primary/10 text-primary rounded text-[10px] font-medium">
-                        Recurring
+                        Recurrente
                       </span>
                     )}
                   </p>
                 </div>
-
-                <span
-                  className={cn(
-                    "text-sm font-semibold tabular-nums shrink-0",
-                    isIncome ? "text-income" : "text-expense"
-                  )}
-                >
-                  {isIncome ? "+" : "-"}
-                  {formatCurrency(Number(tx.amount))}
+                <span className={cn("text-sm font-semibold tabular-nums shrink-0", esIngreso ? "text-income" : "text-expense")}>
+                  {esIngreso ? "+" : "-"}{formatCurrency(Number(tx.monto), moneda)}
                 </span>
-
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-7"
-                    onClick={() => setEditingId(tx.id)}
-                  >
+                  <Button variant="ghost" size="icon" className="size-7" onClick={() => setEditandoId(tx.id)}>
                     <Pencil className="size-3.5" />
                   </Button>
                   <DeleteTransactionButton id={tx.id} />
@@ -113,30 +86,20 @@ export function TransactionList({
           })}
         </div>
       </div>
-
-      {totalPages > 1 && (
+      {totalPaginas > 1 && (
         <Pagination>
           <PaginationContent>
-            {page > 1 && (
-              <PaginationItem>
-                <PaginationPrevious href={buildPageHref(page - 1)} />
-              </PaginationItem>
-            )}
-            {page < totalPages && (
-              <PaginationItem>
-                <PaginationNext href={buildPageHref(page + 1)} />
-              </PaginationItem>
-            )}
+            {pagina > 1 && <PaginationItem><PaginationPrevious href={buildPageHref(pagina - 1)} /></PaginationItem>}
+            {pagina < totalPaginas && <PaginationItem><PaginationNext href={buildPageHref(pagina + 1)} /></PaginationItem>}
           </PaginationContent>
         </Pagination>
       )}
-
-      {editingTx && (
+      {editandoTx && (
         <EditTransactionDialog
-          transaction={editingTx}
-          categories={categories}
-          open={!!editingId}
-          onOpenChange={(o) => !o && setEditingId(null)}
+          transaccion={editandoTx}
+          categorias={categorias}
+          open={!!editandoId}
+          onOpenChange={(o) => !o && setEditandoId(null)}
         />
       )}
     </div>

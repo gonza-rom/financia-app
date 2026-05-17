@@ -1,4 +1,4 @@
-// src/features/transactions/transaction-dialog.tsx
+// features/transactions/transaction-dialog.tsx
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -8,53 +8,35 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import type { Category, TransactionFormData } from "@/types";
-import { TransactionType } from "@prisma/client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { Categoria, FormularioTransaccion } from "@/types";
+import { TipoTransaccion } from "@prisma/client";
 import { createTransactionAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 interface TransactionDialogProps {
-  categories: Category[];
+  categorias: Categoria[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function TransactionDialog({ categories, open, onOpenChange }: TransactionDialogProps) {
+export function TransactionDialog({ categorias, open, onOpenChange }: TransactionDialogProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    watch,
-    setValue,
-    formState: { errors },
-  } = useForm<TransactionFormData>({
-    defaultValues: {
-      type: TransactionType.EXPENSE,
-      date: new Date(),
-      isRecurring: false,
-    },
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FormularioTransaccion>({
+    defaultValues: { tipo: TipoTransaccion.GASTO, fecha: new Date(), esRecurrente: false },
   });
 
-  const selectedType = watch("type");
+  const tipoSeleccionado = watch("tipo");
+  const categoriasFiltradas = categorias.filter((c) => c.tipo === tipoSeleccionado);
 
-  const filteredCategories = categories.filter((c) => c.type === selectedType);
-
-  function onSubmit(data: TransactionFormData) {
+  function onSubmit(data: FormularioTransaccion) {
     startTransition(async () => {
       const result = await createTransactionAction(data);
       if (result.success) {
-        toast({ title: "Transaction added" });
+        toast({ title: "Transacción agregada" });
         reset();
         onOpenChange(false);
       } else {
@@ -67,74 +49,48 @@ export function TransactionDialog({ categories, open, onOpenChange }: Transactio
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add Transaction</DialogTitle>
+          <DialogTitle>Nueva Transacción</DialogTitle>
         </DialogHeader>
-
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-2">
-          {/* Type toggle */}
           <div className="flex rounded-lg border border-border overflow-hidden">
-            {[TransactionType.EXPENSE, TransactionType.INCOME].map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setValue("type", t)}
-                className={cn(
-                  "flex-1 py-2 text-sm font-medium transition-colors",
-                  selectedType === t
-                    ? t === TransactionType.INCOME
-                      ? "bg-income/10 text-income"
-                      : "bg-expense/10 text-expense"
+            {[TipoTransaccion.GASTO, TipoTransaccion.INGRESO].map((t) => (
+              <button key={t} type="button" onClick={() => setValue("tipo", t)}
+                className={cn("flex-1 py-2 text-sm font-medium transition-colors",
+                  tipoSeleccionado === t
+                    ? t === TipoTransaccion.INGRESO ? "bg-income/10 text-income" : "bg-expense/10 text-expense"
                     : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {t === TransactionType.INCOME ? "Income" : "Expense"}
+                )}>
+                {t === TipoTransaccion.INGRESO ? "Ingreso" : "Gasto"}
               </button>
             ))}
           </div>
-
           <div className="space-y-2">
-            <Label htmlFor="amount">Amount</Label>
-            <Input
-              id="amount"
-              type="number"
-              step="0.01"
-              min="0.01"
-              placeholder="0.00"
-              {...register("amount", { required: true, valueAsNumber: true, min: 0.01 })}
-              className={errors.amount ? "border-destructive" : ""}
-            />
+            <Label htmlFor="monto">Monto</Label>
+            <Input id="monto" type="number" step="0.01" min="0.01" placeholder="0.00"
+              {...register("monto", { required: true, valueAsNumber: true, min: 0.01 })}
+              className={errors.monto ? "border-destructive" : ""} />
           </div>
-
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Input
-              id="description"
-              placeholder="What was this for?"
-              {...register("description", { required: true })}
-              className={errors.description ? "border-destructive" : ""}
-            />
+            <Label htmlFor="descripcion">Descripción</Label>
+            <Input id="descripcion" placeholder="¿Para qué fue?"
+              {...register("descripcion", { required: true })}
+              className={errors.descripcion ? "border-destructive" : ""} />
           </div>
-
           <div className="space-y-2">
-            <Label>Category</Label>
-            <Select onValueChange={(v) => setValue("categoryId", v)}>
-              <SelectTrigger className={errors.categoryId ? "border-destructive" : ""}>
-                <SelectValue placeholder="Select category" />
+            <Label>Categoría</Label>
+            <Select onValueChange={(v) => setValue("categoriaId", v)}>
+              <SelectTrigger className={errors.categoriaId ? "border-destructive" : ""}>
+                <SelectValue placeholder="Seleccionar categoría" />
               </SelectTrigger>
               <SelectContent>
-                {filteredCategories.length === 0 ? (
-                  <div className="px-3 py-2 text-xs text-muted-foreground">
-                    No categories for this type
-                  </div>
+                {categoriasFiltradas.length === 0 ? (
+                  <div className="px-3 py-2 text-xs text-muted-foreground">Sin categorías para este tipo</div>
                 ) : (
-                  filteredCategories.map((cat) => (
+                  categoriasFiltradas.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       <div className="flex items-center gap-2">
-                        <div
-                          className="size-2 rounded-full"
-                          style={{ backgroundColor: cat.color }}
-                        />
-                        {cat.name}
+                        <div className="size-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                        {cat.nombre}
                       </div>
                     </SelectItem>
                   ))
@@ -142,37 +98,18 @@ export function TransactionDialog({ categories, open, onOpenChange }: Transactio
               </SelectContent>
             </Select>
           </div>
-
           <div className="space-y-2">
-            <Label htmlFor="date">Date</Label>
-            <Input
-              id="date"
-              type="date"
-              defaultValue={format(new Date(), "yyyy-MM-dd")}
-              {...register("date", {
-                required: true,
-                setValueAs: (v) => new Date(v),
-              })}
-            />
+            <Label htmlFor="fecha">Fecha</Label>
+            <Input id="fecha" type="date" defaultValue={format(new Date(), "yyyy-MM-dd")}
+              {...register("fecha", { required: true, setValueAs: (v) => new Date(v) })} />
           </div>
-
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes (optional)</Label>
-            <Input id="notes" placeholder="Any notes…" {...register("notes")} />
+            <Label htmlFor="notas">Notas (opcional)</Label>
+            <Input id="notas" placeholder="Alguna nota…" {...register("notas")} />
           </div>
-
           <div className="flex gap-3 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="flex-1"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" className="flex-1" disabled={isPending}>
-              {isPending ? "Saving…" : "Save"}
-            </Button>
+            <Button type="button" variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button type="submit" className="flex-1" disabled={isPending}>{isPending ? "Guardando…" : "Guardar"}</Button>
           </div>
         </form>
       </DialogContent>
