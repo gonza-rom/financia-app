@@ -1,4 +1,4 @@
-// src/features/categories/delete-category-button.tsx
+// features/categories/delete-category-button.tsx
 "use client";
 
 import { useTransition } from "react";
@@ -9,30 +9,30 @@ import { useToast } from "@/hooks/use-toast";
 
 interface DeleteCategoryButtonProps {
   id: string;
-  transactionCount: number;
+  cantidadTransacciones: number;
 }
 
-export function DeleteCategoryButton({ id, transactionCount }: DeleteCategoryButtonProps) {
+export function DeleteCategoryButton({ id, cantidadTransacciones }: DeleteCategoryButtonProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
   function handleDelete() {
-    if (transactionCount > 0) {
+    if (cantidadTransacciones > 0) {
       toast({
         variant: "destructive",
-        title: "Cannot delete",
-        description: `This category has ${transactionCount} transaction(s). Reassign them first.`,
+        title: "No se puede eliminar",
+        description: `Esta categoría tiene ${cantidadTransacciones} transacción${cantidadTransacciones !== 1 ? "es" : ""}. Reasignala primero.`,
       });
       return;
     }
-    if (!confirm("Delete this category?")) return;
+    if (!confirm("¿Eliminar esta categoría?")) return;
 
     startTransition(async () => {
       const result = await deleteCategoryAction(id);
       if (!result.success) {
         toast({ variant: "destructive", title: "Error", description: result.error });
       } else {
-        toast({ title: "Category deleted" });
+        toast({ title: "Categoría eliminada" });
       }
     });
   }

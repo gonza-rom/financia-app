@@ -1,21 +1,21 @@
-// src/features/categories/add-category-button.tsx
+// features/categories/add-category-button.tsx
 "use client";
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CategoryDialog } from "./category-dialog";
+import { CategoriaDialog } from "./category-dialog";
 
 export function AddCategoryButton() {
-  const [open, setOpen] = useState(false);
+  const [abierto, setAbierto] = useState(false);
 
   return (
     <>
-      <Button onClick={() => setOpen(true)} size="sm" className="gap-1.5">
+      <Button onClick={() => setAbierto(true)} size="sm" className="gap-1.5">
         <Plus className="size-4" />
-        Add Category
+        Nueva categoría
       </Button>
-      <CategoryDialog open={open} onOpenChange={setOpen} />
+      <CategoriaDialog open={abierto} onOpenChange={setAbierto} />
     </>
   );
 }

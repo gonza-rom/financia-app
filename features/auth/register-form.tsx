@@ -1,4 +1,4 @@
-// src/features/auth/register-form.tsx
+// features/auth/register-form.tsx
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -27,12 +27,12 @@ export function RegisterForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="name">Name</Label>
+        <Label htmlFor="name">Nombre</Label>
         <Input
           id="name"
           name="name"
           type="text"
-          placeholder="Your name"
+          placeholder="Tu nombre"
           required
           autoComplete="name"
           disabled={isPending}
@@ -45,7 +45,7 @@ export function RegisterForm() {
           id="email"
           name="email"
           type="email"
-          placeholder="you@example.com"
+          placeholder="vos@ejemplo.com"
           required
           autoComplete="email"
           disabled={isPending}
@@ -53,7 +53,7 @@ export function RegisterForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">Contraseña</Label>
         <Input
           id="password"
           name="password"
@@ -64,11 +64,11 @@ export function RegisterForm() {
           minLength={8}
           disabled={isPending}
         />
-        <p className="text-xs text-muted-foreground">At least 8 characters</p>
+        <p className="text-xs text-muted-foreground">Mínimo 8 caracteres</p>
       </div>
 
       <Button type="submit" className="w-full" disabled={isPending}>
-        {isPending ? "Creating account…" : "Create account"}
+        {isPending ? "Creando cuenta…" : "Crear cuenta"}
       </Button>
     </form>
   );

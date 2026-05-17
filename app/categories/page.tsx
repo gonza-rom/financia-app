@@ -5,24 +5,24 @@ import { getCategoriesWithStats } from "@/features/categories/queries";
 import { CategoryGrid } from "@/features/categories/category-grid";
 import { AddCategoryButton } from "@/features/categories/add-category-button";
 
-export const metadata: Metadata = { title: "Categories" };
+export const metadata: Metadata = { title: "Categorías" };
 
 export default async function CategoriesPage() {
-  const user = await getCurrentUser();
-  const categories = await getCategoriesWithStats(user.id);
+  const usuario = await getCurrentUser();
+  const categorias = await getCategoriesWithStats(usuario.id);
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Categories</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Categorías</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Organize your transactions
+            Organizá tus transacciones
           </p>
         </div>
         <AddCategoryButton />
       </div>
-      <CategoryGrid categories={categories} />
+      <CategoryGrid categories={categorias} />
     </div>
   );
 }

@@ -31,7 +31,10 @@ export async function createCategoryAction(data: FormularioCategoria): Promise<R
   }
 }
 
-export async function updateCategoryAction(id: string, data: Partial<FormularioCategoria>): Promise<ResultadoAccion> {
+export async function updateCategoryAction(
+  id: string,
+  data: Partial<FormularioCategoria>
+): Promise<ResultadoAccion> {
   try {
     const usuario = await getCurrentUser();
 

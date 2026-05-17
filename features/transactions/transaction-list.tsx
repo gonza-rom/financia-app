@@ -11,8 +11,11 @@ import { DeleteTransactionButton } from "./delete-transaction-button";
 import { EditTransactionDialog } from "./edit-transaction-dialog";
 import { useState } from "react";
 import {
-  Pagination, PaginationContent, PaginationItem,
-  PaginationNext, PaginationPrevious,
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
 } from "@/components/ui/pagination";
 import { useSearchParams } from "next/navigation";
 
@@ -25,10 +28,21 @@ interface TransactionListProps {
   totalPaginas: number;
 }
 
-export function TransactionList({ transacciones, categorias, moneda, total, pagina, totalPaginas }: TransactionListProps) {
+export function TransactionList({
+  transacciones,
+  categorias,
+  moneda,
+  total,
+  pagina,
+  totalPaginas,
+}: TransactionListProps) {
   const searchParams = useSearchParams();
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const editandoTx = transacciones.find((t) => t.id === editandoId);
+
+  function handleEditOpenChange(open: boolean) {
+    if (!open) setEditandoId(null);
+  }
 
   function buildPageHref(p: number) {
     const params = new URLSearchParams(searchParams.toString());
@@ -57,9 +71,12 @@ export function TransactionList({ transacciones, categorias, moneda, total, pagi
               <div key={tx.id} className="flex items-center gap-4 px-5 py-4 group">
                 <div
                   className="size-9 rounded-full flex items-center justify-center shrink-0 text-sm font-semibold"
-                  style={{ backgroundColor: `${tx.categoria.color}20`, color: tx.categoria.color }}
+                  style={{
+                    backgroundColor: `${tx.categoria.color}20`,
+                    color: tx.categoria.color,
+                  }}
                 >
-                  {tx.categoria.nombre.charAt(0)}
+                  {tx.categoria.nombre.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{tx.descripcion}</p>
@@ -72,11 +89,22 @@ export function TransactionList({ transacciones, categorias, moneda, total, pagi
                     )}
                   </p>
                 </div>
-                <span className={cn("text-sm font-semibold tabular-nums shrink-0", esIngreso ? "text-income" : "text-expense")}>
-                  {esIngreso ? "+" : "-"}{formatCurrency(Number(tx.monto), moneda)}
+                <span
+                  className={cn(
+                    "text-sm font-semibold tabular-nums shrink-0",
+                    esIngreso ? "text-income" : "text-expense"
+                  )}
+                >
+                  {esIngreso ? "+" : "-"}
+                  {formatCurrency(Number(tx.monto), moneda)}
                 </span>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                  <Button variant="ghost" size="icon" className="size-7" onClick={() => setEditandoId(tx.id)}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-7"
+                    onClick={() => setEditandoId(tx.id)}
+                  >
                     <Pencil className="size-3.5" />
                   </Button>
                   <DeleteTransactionButton id={tx.id} />
@@ -86,20 +114,30 @@ export function TransactionList({ transacciones, categorias, moneda, total, pagi
           })}
         </div>
       </div>
+
       {totalPaginas > 1 && (
         <Pagination>
           <PaginationContent>
-            {pagina > 1 && <PaginationItem><PaginationPrevious href={buildPageHref(pagina - 1)} /></PaginationItem>}
-            {pagina < totalPaginas && <PaginationItem><PaginationNext href={buildPageHref(pagina + 1)} /></PaginationItem>}
+            {pagina > 1 && (
+              <PaginationItem>
+                <PaginationPrevious href={buildPageHref(pagina - 1)} />
+              </PaginationItem>
+            )}
+            {pagina < totalPaginas && (
+              <PaginationItem>
+                <PaginationNext href={buildPageHref(pagina + 1)} />
+              </PaginationItem>
+            )}
           </PaginationContent>
         </Pagination>
       )}
+
       {editandoTx && (
         <EditTransactionDialog
           transaccion={editandoTx}
           categorias={categorias}
           open={!!editandoId}
-          onOpenChange={(o) => !o && setEditandoId(null)}
+          onOpenChange={handleEditOpenChange}
         />
       )}
     </div>

@@ -1,4 +1,4 @@
-// src/app/layout.tsx
+// app/layout.tsx
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -16,15 +16,15 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Fintrack — Personal Finance",
+    default: "Fintrack — Finanzas Personales",
     template: "%s | Fintrack",
   },
-  description: "Track your income and expenses with a clean, modern interface.",
+  description: "Registrá tus ingresos y gastos con una interfaz limpia y moderna.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="es" className="dark">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}
         <Toaster />

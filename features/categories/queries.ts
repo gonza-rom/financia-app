@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import type { CategoriaConEstadisticas } from "@/types";
 import { unstable_cache } from "next/cache";
 
-export const getCachedCategories = unstable_cache(
+export const getCachedCategorias = unstable_cache(
   async (usuarioId: string): Promise<CategoriaConEstadisticas[]> => {
     const categorias = await prisma.categoria.findMany({
       where: { usuarioId },
@@ -34,5 +34,5 @@ export async function getCategorias(usuarioId: string) {
 }
 
 export async function getCategoriesWithStats(usuarioId: string) {
-  return getCachedCategories(usuarioId);
+  return getCachedCategorias(usuarioId);
 }

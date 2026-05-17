@@ -15,44 +15,45 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Category, TransactionFormData, TransactionWithCategory } from "@/types";
+import type { Categoria, FormularioTransaccion, TransaccionConCategoria } from "@/types";
 import { updateTransactionAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
 
 interface EditTransactionDialogProps {
-  transaction: TransactionWithCategory;
-  categories: Category[];
+  transaccion: TransaccionConCategoria;
+  categorias: Categoria[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export function EditTransactionDialog({
-  transaction,
-  categories,
+  transaccion,
+  categorias,
   open,
   onOpenChange,
 }: EditTransactionDialogProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
-  const { register, handleSubmit, setValue } = useForm<TransactionFormData>({
+  const { register, handleSubmit, setValue } = useForm<FormularioTransaccion>({
     defaultValues: {
-      amount: Number(transaction.amount),
-      description: transaction.description,
-      type: transaction.type,
-      date: transaction.date,
-      categoryId: transaction.categoryId,
-      notes: transaction.notes ?? "",
+      monto: Number(transaccion.monto),
+      descripcion: transaccion.descripcion,
+      tipo: transaccion.tipo,
+      fecha: transaccion.fecha,
+      categoriaId: transaccion.categoriaId,
+      notas: transaccion.notas ?? "",
+      esRecurrente: transaccion.esRecurrente,
     },
   });
 
-  const filteredCategories = categories.filter((c) => c.type === transaction.type);
+  const categoriasFiltradas = categorias.filter((c) => c.tipo === transaccion.tipo);
 
-  function onSubmit(data: TransactionFormData) {
+  function onSubmit(data: FormularioTransaccion) {
     startTransition(async () => {
-      const result = await updateTransactionAction(transaction.id, data);
+      const result = await updateTransactionAction(transaccion.id, data);
       if (result.success) {
-        toast({ title: "Transaction updated" });
+        toast({ title: "Transacción actualizada" });
         onOpenChange(false);
       } else {
         toast({ variant: "destructive", title: "Error", description: result.error });
@@ -64,42 +65,45 @@ export function EditTransactionDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Edit Transaction</DialogTitle>
+          <DialogTitle>Editar transacción</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-2">
           <div className="space-y-2">
-            <Label htmlFor="edit-amount">Amount</Label>
+            <Label htmlFor="edit-monto">Monto</Label>
             <Input
-              id="edit-amount"
+              id="edit-monto"
               type="number"
               step="0.01"
               min="0.01"
-              {...register("amount", { required: true, valueAsNumber: true })}
+              {...register("monto", { required: true, valueAsNumber: true })}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit-description">Description</Label>
+            <Label htmlFor="edit-descripcion">Descripción</Label>
             <Input
-              id="edit-description"
-              {...register("description", { required: true })}
+              id="edit-descripcion"
+              {...register("descripcion", { required: true })}
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Category</Label>
+            <Label>Categoría</Label>
             <Select
-              defaultValue={transaction.categoryId}
-              onValueChange={(v) => setValue("categoryId", v)}
+              defaultValue={transaccion.categoriaId}
+              onValueChange={(v) => setValue("categoriaId", v)}
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {filteredCategories.map((cat) => (
+                {categoriasFiltradas.map((cat) => (
                   <SelectItem key={cat.id} value={cat.id}>
-                    {cat.name}
+                    <div className="flex items-center gap-2">
+                      <div className="size-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                      {cat.nombre}
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -107,18 +111,18 @@ export function EditTransactionDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit-date">Date</Label>
+            <Label htmlFor="edit-fecha">Fecha</Label>
             <Input
-              id="edit-date"
+              id="edit-fecha"
               type="date"
-              defaultValue={format(new Date(transaction.date), "yyyy-MM-dd")}
-              {...register("date", { setValueAs: (v) => new Date(v) })}
+              defaultValue={format(new Date(transaccion.fecha), "yyyy-MM-dd")}
+              {...register("fecha", { setValueAs: (v) => new Date(v) })}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit-notes">Notes</Label>
-            <Input id="edit-notes" {...register("notes")} />
+            <Label htmlFor="edit-notas">Notas</Label>
+            <Input id="edit-notas" placeholder="Alguna nota…" {...register("notas")} />
           </div>
 
           <div className="flex gap-3 pt-2">
@@ -128,10 +132,10 @@ export function EditTransactionDialog({
               className="flex-1"
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              Cancelar
             </Button>
             <Button type="submit" className="flex-1" disabled={isPending}>
-              {isPending ? "Saving…" : "Save Changes"}
+              {isPending ? "Guardando…" : "Guardar cambios"}
             </Button>
           </div>
         </form>

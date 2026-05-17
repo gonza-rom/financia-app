@@ -1,4 +1,4 @@
-// src/features/categories/edit-category-dialog.tsx
+// features/categories/edit-category-dialog.tsx
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -7,47 +7,43 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { CategoryFormData, CategoryWithStats } from "@/types";
+import type { FormularioCategoria, CategoriaConEstadisticas } from "@/types";
 import { updateCategoryAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-const PRESET_COLORS = [
+const COLORES_PRESET = [
   "#ef4444", "#f97316", "#f59e0b", "#22c55e",
   "#14b8a6", "#3b82f6", "#8b5cf6", "#ec4899",
   "#6b7280", "#06b6d4", "#84cc16", "#a855f7",
 ];
 
-interface EditCategoryDialogProps {
-  category: CategoryWithStats;
+interface EditarCategoriaDialogProps {
+  categoria: CategoriaConEstadisticas;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function EditCategoryDialog({
-  category,
-  open,
-  onOpenChange,
-}: EditCategoryDialogProps) {
+export function EditCategoryDialog({ categoria, open, onOpenChange }: EditarCategoriaDialogProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
-  const { register, handleSubmit, setValue, watch } = useForm<CategoryFormData>({
+  const { register, handleSubmit, setValue, watch } = useForm<FormularioCategoria>({
     defaultValues: {
-      name: category.name,
-      color: category.color,
-      icon: category.icon,
-      type: category.type,
+      nombre: categoria.nombre,
+      color: categoria.color,
+      icono: categoria.icono,
+      tipo: categoria.tipo,
     },
   });
 
-  const selectedColor = watch("color");
+  const colorSeleccionado = watch("color");
 
-  function onSubmit(data: CategoryFormData) {
+  function onSubmit(data: FormularioCategoria) {
     startTransition(async () => {
-      const result = await updateCategoryAction(category.id, data);
+      const result = await updateCategoryAction(categoria.id, data);
       if (result.success) {
-        toast({ title: "Category updated" });
+        toast({ title: "Categoría actualizada" });
         onOpenChange(false);
       } else {
         toast({ variant: "destructive", title: "Error", description: result.error });
@@ -59,32 +55,30 @@ export function EditCategoryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Edit Category</DialogTitle>
+          <DialogTitle>Editar categoría</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-2">
           <div className="space-y-2">
-            <Label htmlFor="edit-cat-name">Name</Label>
+            <Label htmlFor="edit-cat-nombre">Nombre</Label>
             <Input
-              id="edit-cat-name"
-              placeholder="e.g. Groceries"
-              {...register("name", { required: true })}
+              id="edit-cat-nombre"
+              placeholder="ej. Supermercado"
+              {...register("nombre", { required: true })}
             />
           </div>
 
           <div className="space-y-2">
             <Label>Color</Label>
             <div className="flex flex-wrap gap-2">
-              {PRESET_COLORS.map((color) => (
+              {COLORES_PRESET.map((color) => (
                 <button
                   key={color}
                   type="button"
                   onClick={() => setValue("color", color)}
                   className={cn(
                     "size-7 rounded-full border-2 transition-transform hover:scale-110",
-                    selectedColor === color
-                      ? "border-foreground scale-110"
-                      : "border-transparent"
+                    colorSeleccionado === color ? "border-foreground scale-110" : "border-transparent"
                   )}
                   style={{ backgroundColor: color }}
                 />
@@ -99,10 +93,10 @@ export function EditCategoryDialog({
               className="flex-1"
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              Cancelar
             </Button>
             <Button type="submit" className="flex-1" disabled={isPending}>
-              {isPending ? "Saving…" : "Save Changes"}
+              {isPending ? "Guardando…" : "Guardar cambios"}
             </Button>
           </div>
         </form>

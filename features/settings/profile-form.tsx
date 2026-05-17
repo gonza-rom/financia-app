@@ -6,7 +6,13 @@ import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { Usuario } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { updateProfileAction } from "./actions";
@@ -60,21 +66,25 @@ export function ProfileForm({ user }: { user: Usuario }) {
       </div>
       <div className="space-y-2">
         <Label htmlFor="nombre">Nombre</Label>
-        <Input id="nombre" {...register("nombre")} />
+        <Input id="nombre" {...register("nombre")} placeholder="Tu nombre" />
       </div>
       <div className="space-y-2">
         <Label>Moneda</Label>
         <Select defaultValue={user.moneda} onValueChange={(v) => setValue("moneda", v)}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             {MONEDAS.map((m) => (
-              <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+              <SelectItem key={m.value} value={m.value}>
+                {m.label}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
       <Button type="submit" disabled={isPending}>
-        {isPending ? "Guardando…" : "Guardar Cambios"}
+        {isPending ? "Guardando…" : "Guardar cambios"}
       </Button>
     </form>
   );

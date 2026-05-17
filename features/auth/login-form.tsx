@@ -1,4 +1,4 @@
-// src/features/auth/login-form.tsx
+// features/auth/login-form.tsx
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -32,7 +32,7 @@ export function LoginForm() {
           id="email"
           name="email"
           type="email"
-          placeholder="you@example.com"
+          placeholder="vos@ejemplo.com"
           required
           autoComplete="email"
           disabled={isPending}
@@ -40,7 +40,7 @@ export function LoginForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">Contraseña</Label>
         <Input
           id="password"
           name="password"
@@ -53,7 +53,7 @@ export function LoginForm() {
       </div>
 
       <Button type="submit" className="w-full" disabled={isPending}>
-        {isPending ? "Signing in…" : "Sign in"}
+        {isPending ? "Ingresando…" : "Ingresar"}
       </Button>
     </form>
   );

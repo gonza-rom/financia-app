@@ -1,64 +1,62 @@
 // prisma/seed.ts
-// Run with: npx tsx prisma/seed.ts
-// Note: requires a user to already exist in the DB.
-// Usage: SEED_USER_ID=your-user-id npx tsx prisma/seed.ts
+// Uso: SEED_USER_ID=8bd3bde4-2883-40a2-b276-e5ea95268b97 npx tsx prisma/seed.ts
 
-import { PrismaClient, TransactionType } from "@prisma/client";
+import { PrismaClient, TipoTransaccion } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-const EXPENSE_CATEGORIES = [
-  { name: "Housing", color: "#3b82f6", icon: "home" },
-  { name: "Food & Dining", color: "#f97316", icon: "utensils" },
-  { name: "Transport", color: "#8b5cf6", icon: "car" },
-  { name: "Health", color: "#ef4444", icon: "heart" },
-  { name: "Entertainment", color: "#ec4899", icon: "music" },
-  { name: "Shopping", color: "#f59e0b", icon: "shopping-bag" },
-  { name: "Education", color: "#14b8a6", icon: "book" },
-  { name: "Utilities", color: "#6b7280", icon: "zap" },
-  { name: "Travel", color: "#06b6d4", icon: "plane" },
-  { name: "Other", color: "#84cc16", icon: "more-horizontal" },
+const CATEGORIAS_GASTO = [
+  { nombre: "Vivienda",         color: "#3b82f6", icono: "home" },
+  { nombre: "Comida",           color: "#f97316", icono: "utensils" },
+  { nombre: "Transporte",       color: "#8b5cf6", icono: "car" },
+  { nombre: "Salud",            color: "#ef4444", icono: "heart" },
+  { nombre: "Entretenimiento",  color: "#ec4899", icono: "music" },
+  { nombre: "Compras",          color: "#f59e0b", icono: "shopping-bag" },
+  { nombre: "Educación",        color: "#14b8a6", icono: "book" },
+  { nombre: "Servicios",        color: "#6b7280", icono: "zap" },
+  { nombre: "Viajes",           color: "#06b6d4", icono: "plane" },
+  { nombre: "Otros",            color: "#84cc16", icono: "more-horizontal" },
 ];
 
-const INCOME_CATEGORIES = [
-  { name: "Salary", color: "#22c55e", icon: "briefcase" },
-  { name: "Freelance", color: "#10b981", icon: "laptop" },
-  { name: "Investments", color: "#3b82f6", icon: "trending-up" },
-  { name: "Business", color: "#8b5cf6", icon: "building" },
-  { name: "Other Income", color: "#6b7280", icon: "plus-circle" },
+const CATEGORIAS_INGRESO = [
+  { nombre: "Sueldo",           color: "#22c55e", icono: "briefcase" },
+  { nombre: "Freelance",        color: "#10b981", icono: "laptop" },
+  { nombre: "Inversiones",      color: "#3b82f6", icono: "trending-up" },
+  { nombre: "Negocio",          color: "#8b5cf6", icono: "building" },
+  { nombre: "Otros ingresos",   color: "#6b7280", icono: "plus-circle" },
 ];
 
 async function main() {
-  const userId = process.env.SEED_USER_ID;
+  const usuarioId = process.env.SEED_USER_ID;
 
-  if (!userId) {
-    console.error("❌  Set SEED_USER_ID env var before running seed.");
-    console.error("    Example: SEED_USER_ID=your-user-id npx tsx prisma/seed.ts");
+  if (!usuarioId) {
+    console.error("❌  Definí la variable SEED_USER_ID antes de ejecutar el seed.");
+    console.error("    Ejemplo: SEED_USER_ID=tu-user-id npx tsx prisma/seed.ts");
     process.exit(1);
   }
 
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) {
-    console.error(`❌  User ${userId} not found. Log in to the app first to create your user record.`);
+  const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId } });
+  if (!usuario) {
+    console.error(`❌  No se encontró el usuario ${usuarioId}. Iniciá sesión primero para crear el registro.`);
     process.exit(1);
   }
 
-  console.log(`🌱  Seeding categories for ${user.email}…`);
+  console.log(`🌱  Creando categorías para ${usuario.email}…`);
 
-  const existing = await prisma.category.count({ where: { userId } });
-  if (existing > 0) {
-    console.log(`⚠️   User already has ${existing} categories. Skipping.`);
+  const existentes = await prisma.categoria.count({ where: { usuarioId } });
+  if (existentes > 0) {
+    console.log(`⚠️   El usuario ya tiene ${existentes} categorías. Se omite el seed.`);
     return;
   }
 
-  await prisma.category.createMany({
+  await prisma.categoria.createMany({
     data: [
-      ...EXPENSE_CATEGORIES.map((c) => ({ ...c, type: TransactionType.EXPENSE, userId })),
-      ...INCOME_CATEGORIES.map((c) => ({ ...c, type: TransactionType.INCOME, userId })),
+      ...CATEGORIAS_GASTO.map((c) => ({ ...c, tipo: TipoTransaccion.GASTO, usuarioId })),
+      ...CATEGORIAS_INGRESO.map((c) => ({ ...c, tipo: TipoTransaccion.INGRESO, usuarioId })),
     ],
   });
 
-  console.log(`✅  Created ${EXPENSE_CATEGORIES.length} expense + ${INCOME_CATEGORIES.length} income categories.`);
+  console.log(`✅  Se crearon ${CATEGORIAS_GASTO.length} categorías de gasto y ${CATEGORIAS_INGRESO.length} de ingreso.`);
 }
 
 main()

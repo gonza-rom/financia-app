@@ -1,4 +1,4 @@
-// src/components/layout/sidebar.tsx
+// components/layout/sidebar.tsx
 "use client";
 
 import Link from "next/link";
@@ -12,7 +12,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { User } from "@/types";
+import type { Usuario } from "@/types";
 import { logoutAction } from "@/features/auth/actions";
 import { useTransition } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -20,14 +20,14 @@ import { getInitials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
-  { href: "/categories", label: "Categories", icon: Tag },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/dashboard",     label: "Dashboard",      icon: LayoutDashboard },
+  { href: "/transactions",  label: "Transacciones",  icon: ArrowLeftRight },
+  { href: "/categories",    label: "Categorías",     icon: Tag },
+  { href: "/settings",      label: "Configuración",  icon: Settings },
 ];
 
 interface SidebarProps {
-  user: User;
+  user: Usuario;
 }
 
 export function Sidebar({ user }: SidebarProps) {
@@ -71,16 +71,16 @@ export function Sidebar({ user }: SidebarProps) {
         })}
       </nav>
 
-      {/* User */}
+      {/* Usuario */}
       <div className="px-3 py-4 border-t border-border space-y-1">
         <div className="flex items-center gap-3 px-3 py-2">
           <Avatar className="size-7">
             <AvatarFallback className="text-xs bg-primary/10 text-primary">
-              {getInitials(user.name ?? user.email)}
+              {getInitials(user.nombre ?? user.email)}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{user.name ?? "User"}</p>
+            <p className="text-sm font-medium truncate">{user.nombre ?? "Usuario"}</p>
             <p className="text-xs text-muted-foreground truncate">{user.email}</p>
           </div>
         </div>
@@ -92,7 +92,7 @@ export function Sidebar({ user }: SidebarProps) {
           disabled={isPending}
         >
           <LogOut className="size-4" />
-          {isPending ? "Signing out…" : "Sign out"}
+          {isPending ? "Cerrando sesión…" : "Cerrar sesión"}
         </Button>
       </div>
     </aside>
