@@ -3,9 +3,14 @@ import type { Vehiculo, SeccionVehiculo, GastoVehiculo } from "@prisma/client";
 export type { Vehiculo, SeccionVehiculo, GastoVehiculo };
 
 export type SeccionConGastos = SeccionVehiculo & {
-  gastos: GastoVehiculo[];
+  gastos: GastoVehiculoSerializado[];
   _count: { gastos: number };
   totalGastado: number;
+};
+
+export type GastoVehiculoSerializado = Omit<GastoVehiculo, 'monto' | 'precioPorUnidad'> & {
+  monto: number;
+  precioPorUnidad: number | null;
 };
 
 export type VehiculoConSecciones = Vehiculo & {

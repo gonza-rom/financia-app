@@ -11,6 +11,7 @@ import {
   DollarSign,
   LogOut,
   Car,
+  Building2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Usuario } from "@/types";
@@ -25,6 +26,7 @@ const NAV_ITEMS = [
   { href: "/transactions", label: "Transacciones", icon: ArrowLeftRight },
   { href: "/categories",   label: "Categorías",    icon: Tag },
   { href: "/vehiculos",    label: "Vehículos",     icon: Car },
+  { href: "/empresas",     label: "Empresas",      icon: Building2 },
   { href: "/settings",     label: "Configuración", icon: Settings },
 ];
 

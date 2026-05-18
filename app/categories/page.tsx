@@ -22,7 +22,7 @@ export default async function CategoriesPage() {
         </div>
         <AddCategoryButton />
       </div>
-      <CategoryGrid categories={categorias} />
+      <CategoryGrid categories={categorias} moneda={usuario.moneda} />
     </div>
   );
 }

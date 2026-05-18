@@ -46,18 +46,25 @@ export async function getTransacciones(
     prisma.transaccion.count({ where }),
   ]);
 
-  return { data, total, pagina, limite, totalPaginas: Math.ceil(total / limite) };
+  return {
+    data: data.map((tx) => ({ ...tx, monto: Number(tx.monto) })),
+    total,
+    pagina,
+    limite,
+    totalPaginas: Math.ceil(total / limite),
+  };
 }
 
 // Con cache — para el dashboard (las 8 más recientes)
 export const getTransaccionesRecientes = unstable_cache(
   async (usuarioId: string, limite = 8) => {
-    return prisma.transaccion.findMany({
+    const txs = await prisma.transaccion.findMany({
       where: { usuarioId },
       include: { categoria: true },
       orderBy: { fecha: "desc" },
       take: limite,
     });
+    return txs.map((tx) => ({ ...tx, monto: Number(tx.monto) }));
   },
   ["transacciones-recientes"],
   { revalidate: 30, tags: ["transacciones"] }

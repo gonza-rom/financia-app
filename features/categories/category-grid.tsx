@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 
 interface CategoriaGridProps {
   categories: CategoriaConEstadisticas[];
+  moneda: string;
 }
 
 function SeccionCategorias({
@@ -20,11 +21,13 @@ function SeccionCategorias({
   items,
   tipo,
   onEditar,
+  moneda,
 }: {
   titulo: string;
   items: CategoriaConEstadisticas[];
   tipo: TipoTransaccion;
   onEditar: (id: string) => void;
+  moneda: string;
 }) {
   return (
     <div>
@@ -65,7 +68,7 @@ function SeccionCategorias({
                   {cat._count.transacciones}{" "}
                   {cat._count.transacciones === 1 ? "transacción" : "transacciones"}
                   {cat.montoTotal > 0 && (
-                    <> · {formatCurrency(cat.montoTotal)}</>
+                    <> · {formatCurrency(cat.montoTotal, moneda)}</>
                   )}
                 </p>
               </div>
@@ -88,7 +91,7 @@ function SeccionCategorias({
   );
 }
 
-export function CategoryGrid({ categories }: CategoriaGridProps) {
+export function CategoryGrid({ categories, moneda }: CategoriaGridProps) {
   const [editandoId, setEditandoId] = useState<string | null>(null);
 
   const ingresos = categories.filter((c) => c.tipo === TipoTransaccion.INGRESO);
@@ -102,12 +105,14 @@ export function CategoryGrid({ categories }: CategoriaGridProps) {
         items={ingresos}
         tipo={TipoTransaccion.INGRESO}
         onEditar={setEditandoId}
+        moneda={moneda}
       />
       <SeccionCategorias
         titulo="Gastos"
         items={gastos}
         tipo={TipoTransaccion.GASTO}
         onEditar={setEditandoId}
+        moneda={moneda}
       />
 
       {categoriaEditando && (

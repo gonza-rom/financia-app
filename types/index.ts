@@ -13,7 +13,8 @@ import type {
 export type { Categoria, FrecuenciaRecurrente, ReglaRecurrente, Transaccion, TipoTransaccion, Usuario };
 
 // ─── Tipos extendidos ─────────────────────────────────────────────────────────
-export type TransaccionConCategoria = Transaccion & {
+export type TransaccionConCategoria = Omit<Transaccion, 'monto'> & {
+  monto: number;
   categoria: Categoria;
 };
 

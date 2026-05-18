@@ -29,6 +29,7 @@ model Usuario {
   transacciones Transaccion[]
   categorias    Categoria[]
   vehiculos     Vehiculo[]
+  empresas  Empresa[]
 
   @@map("usuarios")
 }
@@ -65,6 +66,8 @@ model Transaccion {
   usuario         Usuario              @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   categoria       Categoria            @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
   reglaRecurrente ReglaRecurrente?
+  cobroProyecto  CobroProyecto?
+  gastoEmpresa   GastoEmpresa?
 
   @@index([usuarioId])
   @@index([usuarioId, fecha])
@@ -148,4 +151,115 @@ model GastoVehiculo {
   @@index([seccionId])
   @@index([vehiculoId, fecha])
   @@map("gastos_vehiculos")
+}
+
+model Empresa {
+  id            String          @id @default(cuid())
+  nombre        String
+  descripcion   String?
+  color         String          @default("#6b7280")
+  logo          String?         // URL o emoji
+  moneda        String          @default("ARS")
+  activo        Boolean         @default(true)
+  usuarioId     String          @map("usuario_id")
+  creadoEn      DateTime        @default(now()) @map("creado_en")
+  actualizadoEn DateTime        @updatedAt @map("actualizado_en")
+  usuario       Usuario         @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  clientes      Cliente[]
+  proyectos     Proyecto[]
+  gastos        GastoEmpresa[]
+
+  @@index([usuarioId])
+  @@map("empresas")
+}
+
+model Cliente {
+  id            String     @id @default(cuid())
+  nombre        String
+  email         String?
+  telefono      String?
+  empresaId     String     @map("empresa_id")
+  creadoEn      DateTime   @default(now()) @map("creado_en")
+  actualizadoEn DateTime   @updatedAt @map("actualizado_en")
+  empresa       Empresa    @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  proyectos     Proyecto[]
+
+  @@index([empresaId])
+  @@map("clientes")
+}
+
+enum EstadoProyecto {
+  ACTIVO
+  PAUSADO
+  COMPLETADO
+  CANCELADO
+}
+
+enum TipoCobroProyecto {
+  UNICO
+  HITOS
+  SUSCRIPCION
+  MIXTO
+}
+
+model Proyecto {
+  id            String            @id @default(cuid())
+  nombre        String
+  descripcion   String?
+  estado        EstadoProyecto    @default(ACTIVO)
+  tipoCobro     TipoCobroProyecto @default(UNICO) @map("tipo_cobro")
+  montoTotal    Decimal?          @db.Decimal(12, 2) @map("monto_total")
+  empresaId     String            @map("empresa_id")
+  clienteId     String?           @map("cliente_id")
+  fechaInicio   DateTime?         @map("fecha_inicio")
+  fechaFin      DateTime?         @map("fecha_fin")
+  creadoEn      DateTime          @default(now()) @map("creado_en")
+  actualizadoEn DateTime          @updatedAt @map("actualizado_en")
+  empresa       Empresa           @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  cliente       Cliente?          @relation(fields: [clienteId], references: [id], onDelete: SetNull)
+  cobros        CobroProyecto[]
+
+  @@index([empresaId])
+  @@index([clienteId])
+  @@map("proyectos")
+}
+
+enum EstadoCobro {
+  PENDIENTE
+  COBRADO
+}
+
+model CobroProyecto {
+  id              String        @id @default(cuid())
+  descripcion     String
+  monto           Decimal       @db.Decimal(12, 2)
+  estado          EstadoCobro   @default(PENDIENTE)
+  fechaEstimada   DateTime?     @map("fecha_estimada")
+  fechaCobro      DateTime?     @map("fecha_cobro")
+  proyectoId      String        @map("proyecto_id")
+  transaccionId   String?       @unique @map("transaccion_id")
+  creadoEn        DateTime      @default(now()) @map("creado_en")
+  actualizadoEn   DateTime      @updatedAt @map("actualizado_en")
+  proyecto        Proyecto      @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  transaccion     Transaccion?  @relation(fields: [transaccionId], references: [id], onDelete: SetNull)
+
+  @@index([proyectoId])
+  @@map("cobros_proyecto")
+}
+
+model GastoEmpresa {
+  id            String    @id @default(cuid())
+  descripcion   String
+  monto         Decimal   @db.Decimal(12, 2)
+  fecha         DateTime
+  empresaId     String    @map("empresa_id")
+  transaccionId String?   @unique @map("transaccion_id")
+  notas         String?
+  creadoEn      DateTime  @default(now()) @map("creado_en")
+  actualizadoEn DateTime  @updatedAt @map("actualizado_en")
+  empresa       Empresa   @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  transaccion   Transaccion? @relation(fields: [transaccionId], references: [id], onDelete: SetNull)
+
+  @@index([empresaId])
+  @@map("gastos_empresa")
 }

@@ -1,6 +1,7 @@
 // features/vehiculos/seccion-card.tsx
 "use client";
 
+import { eliminarSeccionAction } from "./actions";
 import { useState } from "react";
 import { useTransition } from "react";
 import { Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
@@ -77,6 +78,25 @@ export function SeccionCard({ vehiculoId, seccion, moneda }: SeccionCardProps) {
               {expandido
                 ? <ChevronUp className="size-3.5" />
                 : <ChevronDown className="size-3.5" />}
+            </Button>
+            <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 text-destructive hover:text-destructive"
+                onClick={() => {
+                    if (!confirm(`¿Eliminar la sección "${seccion.nombre}"? Se eliminarán también todos sus gastos.`)) return;
+                    startTransition(async () => {
+                    const result = await eliminarSeccionAction(seccion.id);
+                    if (!result.success) {
+                        toast({ variant: "destructive", title: "Error", description: result.error });
+                    } else {
+                        toast({ title: "Sección eliminada" });
+                    }
+                    });
+                }}
+                disabled={isPending}
+                >
+                <Trash2 className="size-3.5" />
             </Button>
           </div>
         </div>

@@ -65,12 +65,17 @@ export async function getVehiculoConSecciones(
     _sum: { monto: true },
   });
 
-  const secciones: SeccionConGastos[] = vehiculo.secciones.map((s) => ({
+    const secciones: SeccionConGastos[] = vehiculo.secciones.map((s) => ({
     ...s,
     totalGastado: Number(
-      totalesPorSeccion.find((t) => t.seccionId === s.id)?._sum.monto ?? 0
+        totalesPorSeccion.find((t) => t.seccionId === s.id)?._sum.monto ?? 0
     ),
-  }));
+    gastos: s.gastos.map((g) => ({
+        ...g,
+        monto: Number(g.monto),
+        precioPorUnidad: g.precioPorUnidad ? Number(g.precioPorUnidad) : null,
+    })),
+    }));
 
   return {
     ...vehiculo,
