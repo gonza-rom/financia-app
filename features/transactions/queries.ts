@@ -14,6 +14,7 @@ export type ParamsTransacciones = {
   fechaHasta?: Date;
 };
 
+// Sin cache — siempre fresca (para la lista paginada con filtros)
 export async function getTransacciones(
   usuarioId: string,
   params: ParamsTransacciones = {}
@@ -45,24 +46,24 @@ export async function getTransacciones(
     prisma.transaccion.count({ where }),
   ]);
 
-  return {
-    data,
-    total,
-    pagina,
-    limite,
-    totalPaginas: Math.ceil(total / limite),
-  };
+  return { data, total, pagina, limite, totalPaginas: Math.ceil(total / limite) };
 }
 
-export async function getTransaccionesRecientes(usuarioId: string, limite = 10) {
-  return prisma.transaccion.findMany({
-    where: { usuarioId },
-    include: { categoria: true },
-    orderBy: { fecha: "desc" },
-    take: limite,
-  });
-}
+// Con cache — para el dashboard (las 8 más recientes)
+export const getTransaccionesRecientes = unstable_cache(
+  async (usuarioId: string, limite = 8) => {
+    return prisma.transaccion.findMany({
+      where: { usuarioId },
+      include: { categoria: true },
+      orderBy: { fecha: "desc" },
+      take: limite,
+    });
+  },
+  ["transacciones-recientes"],
+  { revalidate: 30, tags: ["transacciones"] }
+);
 
+// Desglose por categoría con cache
 export const getCachedCategoryBreakdown = unstable_cache(
   async (usuarioId: string, anio: number, mes: number, tipo: TipoTransaccion) => {
     const desde = new Date(anio, mes - 1, 1);
@@ -97,9 +98,10 @@ export const getCachedCategoryBreakdown = unstable_cache(
     });
   },
   ["desglose-categorias"],
-  { revalidate: 60, tags: ["transacciones"] }
+  { revalidate: 30, tags: ["transacciones"] }
 );
 
+// Gráfico anual con cache más largo (cambia poco)
 export const getCachedYearlyChart = unstable_cache(
   async (usuarioId: string, anio: number) => {
     const desde = new Date(anio, 0, 1);
@@ -120,7 +122,7 @@ export const getCachedYearlyChart = unstable_cache(
       ORDER BY mes
     `;
 
-    const meses = Array.from({ length: 12 }, (_, i) => {
+    return Array.from({ length: 12 }, (_, i) => {
       const m = i + 1;
       const ingreso = resultado.find((r) => r.mes === m && r.tipo === TipoTransaccion.INGRESO)?.total ?? 0;
       const gastos = resultado.find((r) => r.mes === m && r.tipo === TipoTransaccion.GASTO)?.total ?? 0;
@@ -131,9 +133,7 @@ export const getCachedYearlyChart = unstable_cache(
         ahorro: ingreso - gastos,
       };
     });
-
-    return meses;
   },
   ["grafico-anual"],
-  { revalidate: 300, tags: ["transacciones"] }
+  { revalidate: 60, tags: ["transacciones"] }
 );

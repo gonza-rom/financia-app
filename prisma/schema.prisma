@@ -28,6 +28,7 @@ model Usuario {
   actualizadoEn DateTime      @updatedAt @map("actualizado_en")
   transacciones Transaccion[]
   categorias    Categoria[]
+  vehiculos     Vehiculo[]
 
   @@map("usuarios")
 }
@@ -82,4 +83,69 @@ model ReglaRecurrente {
   transaccion   Transaccion          @relation(fields: [transaccionId], references: [id], onDelete: Cascade)
 
   @@map("reglas_recurrentes")
+}
+
+// ─── Módulo Vehículos ─────────────────────────────────────────────────────────
+
+model Vehiculo {
+  id            String              @id @default(cuid())
+  nombre        String              // "Mi Corsa", "Moto Honda"
+  marca         String
+  modelo        String
+  anio          Int                 @map("anio")
+  patente       String?
+  color         String              @default("#6b7280")
+  kilometraje   Int?                @default(0)
+  activo        Boolean             @default(true)
+  usuarioId     String              @map("usuario_id")
+  creadoEn      DateTime            @default(now()) @map("creado_en")
+  actualizadoEn DateTime            @updatedAt @map("actualizado_en")
+  usuario       Usuario             @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  secciones     SeccionVehiculo[]   // Nafta, Seguro, GNC, etc. — configurables
+  gastos        GastoVehiculo[]
+
+  @@index([usuarioId])
+  @@map("vehiculos")
+}
+
+// Secciones configurables por vehículo: Nafta, Seguro, GNC, Mantenimiento, etc.
+model SeccionVehiculo {
+  id            String          @id @default(cuid())
+  nombre        String          // "Nafta", "Seguro", "GNC", "Mantenimiento"
+  icono         String          @default("wrench")
+  color         String          @default("#6b7280")
+  orden         Int             @default(0)
+  vehiculoId    String          @map("vehiculo_id")
+  creadoEn      DateTime        @default(now()) @map("creado_en")
+  actualizadoEn DateTime        @updatedAt @map("actualizado_en")
+  vehiculo      Vehiculo        @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
+  gastos        GastoVehiculo[]
+
+  @@index([vehiculoId])
+  @@map("secciones_vehiculos")
+}
+
+model GastoVehiculo {
+  id             String          @id @default(cuid())
+  monto          Decimal         @db.Decimal(12, 2)
+  fecha          DateTime
+  descripcion    String
+  notas          String?
+  kilometraje    Int?            // Km al momento del gasto
+  // Campos opcionales según sección
+  litros         Float?          // Para nafta/GNC
+  precioPorUnidad Decimal?       @db.Decimal(8, 2) @map("precio_por_unidad")
+  vencimiento    DateTime?       // Para seguro
+  proximoKm      Int?            @map("proximo_km") // Para service/mantenimiento
+  vehiculoId     String          @map("vehiculo_id")
+  seccionId      String          @map("seccion_id")
+  creadoEn       DateTime        @default(now()) @map("creado_en")
+  actualizadoEn  DateTime        @updatedAt @map("actualizado_en")
+  vehiculo       Vehiculo        @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
+  seccion        SeccionVehiculo @relation(fields: [seccionId], references: [id], onDelete: Cascade)
+
+  @@index([vehiculoId])
+  @@index([seccionId])
+  @@index([vehiculoId, fecha])
+  @@map("gastos_vehiculos")
 }

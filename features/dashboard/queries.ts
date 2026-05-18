@@ -55,5 +55,6 @@ export const getCachedDashboardStats = unstable_cache(
     };
   },
   ["dashboard-stats"],
-  { revalidate: 60, tags: ["transacciones"] }
+  // Revalida cada 30 segundos Y cuando se invalida el tag "transacciones"
+  { revalidate: 30, tags: ["transacciones", "dashboard-stats"] }
 );

@@ -22,6 +22,9 @@ export async function updateProfileAction(data: {
     });
 
     revalidatePath("/", "layout");
+    revalidatePath("/settings");
+    revalidatePath("/dashboard");
+
     return { success: true, data: undefined };
   } catch (err) {
     console.error("[actualizarPerfil]", err);

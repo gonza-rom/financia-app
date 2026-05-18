@@ -4,7 +4,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { ResultadoAccion, FormularioTransaccion } from "@/types";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 export async function createTransactionAction(
   data: FormularioTransaccion
@@ -25,8 +25,11 @@ export async function createTransactionAction(
       },
     });
 
+    revalidateTag("transacciones");
+    revalidateTag("dashboard-stats");
     revalidatePath("/dashboard");
-    revalidatePath("/transacciones");
+    revalidatePath("/transactions");
+
     return { success: true, data: { id: transaccion.id } };
   } catch (err) {
     console.error("[crearTransaccion]", err);
@@ -53,8 +56,11 @@ export async function updateTransactionAction(
       },
     });
 
+    revalidateTag("transacciones");
+    revalidateTag("dashboard-stats");
     revalidatePath("/dashboard");
-    revalidatePath("/transacciones");
+    revalidatePath("/transactions");
+
     return { success: true, data: undefined };
   } catch (err) {
     console.error("[actualizarTransaccion]", err);
@@ -68,8 +74,11 @@ export async function deleteTransactionAction(id: string): Promise<ResultadoAcci
 
     await prisma.transaccion.deleteMany({ where: { id, usuarioId: usuario.id } });
 
+    revalidateTag("transacciones");
+    revalidateTag("dashboard-stats");
     revalidatePath("/dashboard");
-    revalidatePath("/transacciones");
+    revalidatePath("/transactions");
+
     return { success: true, data: undefined };
   } catch (err) {
     console.error("[eliminarTransaccion]", err);

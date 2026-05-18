@@ -4,7 +4,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { ResultadoAccion, FormularioCategoria } from "@/types";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 export async function createCategoryAction(data: FormularioCategoria): Promise<ResultadoAccion> {
   try {
@@ -21,9 +21,10 @@ export async function createCategoryAction(data: FormularioCategoria): Promise<R
       },
     });
 
-    revalidatePath("/categorias");
-    revalidatePath("/transacciones");
-    revalidatePath("/dashboard");
+    revalidateTag("categorias");
+    revalidatePath("/categories");
+    revalidatePath("/transactions");
+
     return { success: true, data: undefined };
   } catch (err) {
     console.error("[crearCategoria]", err);
@@ -47,8 +48,9 @@ export async function updateCategoryAction(
       },
     });
 
-    revalidatePath("/categorias");
-    revalidatePath("/dashboard");
+    revalidateTag("categorias");
+    revalidatePath("/categories");
+
     return { success: true, data: undefined };
   } catch (err) {
     console.error("[actualizarCategoria]", err);
@@ -62,9 +64,10 @@ export async function deleteCategoryAction(id: string): Promise<ResultadoAccion>
 
     await prisma.categoria.deleteMany({ where: { id, usuarioId: usuario.id } });
 
-    revalidatePath("/categorias");
-    revalidatePath("/transacciones");
-    revalidatePath("/dashboard");
+    revalidateTag("categorias");
+    revalidatePath("/categories");
+    revalidatePath("/transactions");
+
     return { success: true, data: undefined };
   } catch (err) {
     console.error("[eliminarCategoria]", err);

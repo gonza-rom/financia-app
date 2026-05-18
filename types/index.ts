@@ -8,6 +8,7 @@ import type {
   Usuario,
 } from "@prisma/client";
 
+
 // ─── Re-exports desde Prisma ─────────────────────────────────────────────────
 export type { Categoria, FrecuenciaRecurrente, ReglaRecurrente, Transaccion, TipoTransaccion, Usuario };
 
