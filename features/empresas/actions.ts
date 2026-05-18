@@ -113,6 +113,48 @@ export async function crearProyectoAction(empresaId: string, data: FormularioPro
   }
 }
 
+export async function actualizarProyectoAction(
+  id: string,
+  empresaId: string,
+  data: Partial<FormularioProyecto> & { estado?: string }
+): Promise<Resultado> {
+  try {
+    await getCurrentUser();
+    await prisma.proyecto.update({
+      where: { id },
+      data: {
+        ...(data.nombre !== undefined && { nombre: data.nombre }),
+        ...(data.descripcion !== undefined && { descripcion: data.descripcion ?? null }),
+        ...(data.tipoCobro !== undefined && { tipoCobro: data.tipoCobro }),
+        ...(data.montoTotal !== undefined && { montoTotal: data.montoTotal ?? null }),
+        ...(data.clienteId !== undefined && { clienteId: data.clienteId ?? null }),
+        ...(data.fechaInicio !== undefined && { fechaInicio: data.fechaInicio ?? null }),
+        ...(data.fechaFin !== undefined && { fechaFin: data.fechaFin ?? null }),
+        ...(data.estado !== undefined && { estado: data.estado as any }),
+      },
+    });
+    revalidateTag("empresas");
+    revalidatePath(`/empresas/${empresaId}`);
+    return { success: true, data: undefined };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: "Error al actualizar el proyecto." };
+  }
+}
+
+export async function eliminarProyectoAction(id: string, empresaId: string): Promise<Resultado> {
+  try {
+    await getCurrentUser();
+    await prisma.proyecto.delete({ where: { id } });
+    revalidateTag("empresas");
+    revalidatePath(`/empresas/${empresaId}`);
+    return { success: true, data: undefined };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: "Error al eliminar el proyecto." };
+  }
+}
+
 export async function actualizarEstadoProyectoAction(
   id: string, empresaId: string, estado: string
 ): Promise<Resultado> {

@@ -19,7 +19,7 @@ export const metadata: Metadata = { title: "Dashboard" };
 
 async function DashboardData() {
   const usuario = await getCurrentUser();
-  const anio = new Date().getFullYear();
+  const anio = new Date().getFullYear(); 
   const mes = new Date().getMonth() + 1;
 
   const [stats, graficoDatos, desgloseGastos, transRecientes] = await Promise.all([

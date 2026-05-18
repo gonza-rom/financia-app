@@ -11,7 +11,7 @@ import {
   DollarSign,
   LogOut,
   Car,
-  Building2
+  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Usuario } from "@/types";
@@ -43,7 +43,7 @@ export function Sidebar({ user }: SidebarProps) {
   }
 
   return (
-    <aside className="w-60 shrink-0 flex flex-col border-r border-border h-full">
+    <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-border h-full">
       {/* Logo */}
       <div className="px-4 py-5 flex items-center gap-2.5 border-b border-border">
         <div className="size-7 rounded-md bg-primary flex items-center justify-center shrink-0">

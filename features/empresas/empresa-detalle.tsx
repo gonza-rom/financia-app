@@ -3,26 +3,32 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import type { EmpresaDetalle, ProyectoConCobros, CobroSerializado } from "@/types/empresas";
+import type { EmpresaDetalle, ProyectoConCobros, CobroSerializado, Cliente } from "@/types/empresas";
 import type { Categoria } from "@/types";
 import { formatCurrency, formatShortDate } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Building2, Plus, Check, Trash2, ArrowLeft, TrendingUp, TrendingDown, Users, FolderOpen } from "lucide-react";
+import {
+  Building2, Plus, Check, Trash2, ArrowLeft,
+  TrendingUp, TrendingDown, Users, FolderOpen, Pencil,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { confirmarCobroAction, eliminarCobroAction, actualizarEstadoProyectoAction } from "./actions";
+import {
+  confirmarCobroAction, eliminarCobroAction,
+  eliminarProyectoAction,
+} from "./actions";
 import { NuevoProyectoDialog } from "./nuevo-proyecto-dialog";
 import { NuevoClienteDialog } from "./nuevo-cliente-dialog";
 import { NuevoCobroDialog } from "./nuevo-cobro-dialog";
 import { NuevoGastoEmpresaDialog } from "./nuevo-gasto-empresa-dialog";
+import { EditarProyectoDialog } from "./editar-proyecto-dialog";
 
 const ESTADO_COLORS: Record<string, string> = {
-  ACTIVO: "bg-income/10 text-income",
-  PAUSADO: "bg-amber-500/10 text-amber-400",
+  ACTIVO:     "bg-income/10 text-income",
+  PAUSADO:    "bg-amber-500/10 text-amber-400",
   COMPLETADO: "bg-primary/10 text-primary",
-  CANCELADO: "bg-muted text-muted-foreground",
+  CANCELADO:  "bg-muted text-muted-foreground",
 };
 
 const ESTADO_LABELS: Record<string, string> = {
@@ -78,7 +84,6 @@ function CobroRow({
           <Trash2 className="size-3.5" />
         </Button>
       </div>
-      {/* Dialog confirmar con opción de transferir */}
       {confirmarOpen && (
         <ConfirmarCobroDialog
           cobro={cobro} empresaId={empresaId} categorias={categorias} moneda={moneda}
@@ -150,60 +155,102 @@ function ConfirmarCobroDialog({
 }
 
 function ProyectoCard({
-  proyecto, empresaId, categorias, moneda,
+  proyecto, empresaId, clientes, categorias, moneda,
 }: {
   proyecto: ProyectoConCobros;
   empresaId: string;
+  clientes: Cliente[];
   categorias: Categoria[];
   moneda: string;
 }) {
   const [cobroOpen, setCobroOpen] = useState(false);
+  const [editandoOpen, setEditandoOpen] = useState(false);
   const [expandido, setExpandido] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
+
+  function handleEliminar() {
+    if (!confirm(`¿Eliminar el proyecto "${proyecto.nombre}"? Se eliminarán también todos sus cobros.`)) return;
+    startTransition(async () => {
+      const r = await eliminarProyectoAction(proyecto.id, empresaId);
+      if (!r.success) toast({ variant: "destructive", title: "Error", description: r.error });
+      else toast({ title: "Proyecto eliminado" });
+    });
+  }
 
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden">
-      <div className="px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <FolderOpen className="size-4 text-muted-foreground shrink-0" />
-          <div>
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-medium">{proyecto.nombre}</p>
-              <span className={cn("text-[11px] px-1.5 py-0.5 rounded-full font-medium", ESTADO_COLORS[proyecto.estado])}>
-                {ESTADO_LABELS[proyecto.estado]}
-              </span>
+    <>
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <div className="px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <FolderOpen className="size-4 text-muted-foreground shrink-0" />
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium">{proyecto.nombre}</p>
+                <span className={cn("text-[11px] px-1.5 py-0.5 rounded-full font-medium", ESTADO_COLORS[proyecto.estado])}>
+                  {ESTADO_LABELS[proyecto.estado]}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {proyecto.cliente?.nombre && <>{proyecto.cliente.nombre} · </>}
+                {proyecto.cobros.length} cobro{proyecto.cobros.length !== 1 ? "s" : ""}
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {proyecto.cliente?.nombre && <>{proyecto.cliente.nombre} · </>}
-              {proyecto.cobros.length} cobro{proyecto.cobros.length !== 1 ? "s" : ""}
-            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="text-right">
+              <p className="text-sm font-semibold text-income">{formatCurrency(proyecto.totalCobrado, moneda)}</p>
+              {proyecto.totalPendiente > 0 && (
+                <p className="text-xs text-amber-400">{formatCurrency(proyecto.totalPendiente, moneda)} pendiente</p>
+              )}
+            </div>
+            {/* Botón agregar cobro */}
+            <Button variant="ghost" size="icon" className="size-7" onClick={() => setCobroOpen(true)} title="Agregar cobro">
+              <Plus className="size-3.5" />
+            </Button>
+            {/* Botón editar */}
+            <Button variant="ghost" size="icon" className="size-7" onClick={() => setEditandoOpen(true)} title="Editar proyecto">
+              <Pencil className="size-3.5" />
+            </Button>
+            {/* Botón eliminar */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7 text-destructive hover:text-destructive"
+              onClick={handleEliminar}
+              disabled={isPending}
+              title="Eliminar proyecto"
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
+            {/* Expandir cobros */}
+            <Button variant="ghost" size="icon" className="size-7" onClick={() => setExpandido(!expandido)}>
+              <span className="text-xs">{expandido ? "▲" : "▼"}</span>
+            </Button>
           </div>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="text-right">
-            <p className="text-sm font-semibold text-income">{formatCurrency(proyecto.totalCobrado, moneda)}</p>
-            {proyecto.totalPendiente > 0 && (
-              <p className="text-xs text-amber-400">{formatCurrency(proyecto.totalPendiente, moneda)} pendiente</p>
-            )}
+
+        {expandido && proyecto.cobros.length > 0 && (
+          <div className="border-t border-border divide-y divide-border">
+            {proyecto.cobros.map((cobro) => (
+              <CobroRow key={cobro.id} cobro={cobro} empresaId={empresaId} categorias={categorias} moneda={moneda} />
+            ))}
           </div>
-          <Button variant="ghost" size="icon" className="size-7" onClick={() => setCobroOpen(true)} title="Agregar cobro">
-            <Plus className="size-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="size-7" onClick={() => setExpandido(!expandido)}>
-            <span className="text-xs">{expandido ? "▲" : "▼"}</span>
-          </Button>
-        </div>
+        )}
+
+        <NuevoCobroDialog open={cobroOpen} onOpenChange={setCobroOpen} proyectoId={proyecto.id} empresaId={empresaId} />
       </div>
 
-      {expandido && proyecto.cobros.length > 0 && (
-        <div className="border-t border-border divide-y divide-border">
-          {proyecto.cobros.map((cobro) => (
-            <CobroRow key={cobro.id} cobro={cobro} empresaId={empresaId} categorias={categorias} moneda={moneda} />
-          ))}
-        </div>
+      {editandoOpen && (
+        <EditarProyectoDialog
+          proyecto={proyecto}
+          empresaId={empresaId}
+          clientes={clientes}
+          open={editandoOpen}
+          onOpenChange={setEditandoOpen}
+        />
       )}
-
-      <NuevoCobroDialog open={cobroOpen} onOpenChange={setCobroOpen} proyectoId={proyecto.id} empresaId={empresaId} />
-    </div>
+    </>
   );
 }
 
@@ -243,8 +290,8 @@ export function EmpresaDetallePage({
       <div className="grid grid-cols-3 gap-4">
         {[
           { label: "Ingresos totales", valor: empresa.totalIngresos, clase: "text-income", icono: TrendingUp },
-          { label: "Gastos totales", valor: empresa.totalGastos, clase: "text-expense", icono: TrendingDown },
-          { label: "Ganancia neta", valor: empresa.gananciaNeta, clase: empresa.gananciaNeta >= 0 ? "text-income" : "text-expense", icono: null },
+          { label: "Gastos totales",   valor: empresa.totalGastos,   clase: "text-expense", icono: TrendingDown },
+          { label: "Ganancia neta",    valor: empresa.gananciaNeta,  clase: empresa.gananciaNeta >= 0 ? "text-income" : "text-expense", icono: null },
         ].map((s) => (
           <div key={s.label} className="rounded-xl border border-border bg-card p-4">
             <p className="text-xs text-muted-foreground mb-1">{s.label}</p>
@@ -287,7 +334,14 @@ export function EmpresaDetallePage({
             </div>
           ) : (
             empresa.proyectos.map((p) => (
-              <ProyectoCard key={p.id} proyecto={p} empresaId={empresa.id} categorias={categorias} moneda={moneda} />
+              <ProyectoCard
+                key={p.id}
+                proyecto={p}
+                empresaId={empresa.id}
+                clientes={empresa.clientes}
+                categorias={categorias}
+                moneda={moneda}
+              />
             ))
           )}
         </TabsContent>
