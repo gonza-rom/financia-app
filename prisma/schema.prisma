@@ -30,6 +30,7 @@ model Usuario {
   categorias    Categoria[]
   vehiculos     Vehiculo[]
   empresas  Empresa[]
+  deudas        Deuda[]
 
   @@map("usuarios")
 }
@@ -168,6 +169,7 @@ model Empresa {
   clientes      Cliente[]
   proyectos     Proyecto[]
   gastos        GastoEmpresa[]
+  deudas        Deuda[]
 
   @@index([usuarioId])
   @@map("empresas")
@@ -262,4 +264,61 @@ model GastoEmpresa {
 
   @@index([empresaId])
   @@map("gastos_empresa")
+}
+
+enum TipoDeuda {
+  COBRAR
+  PAGAR
+}
+
+enum EstadoDeuda {
+  PENDIENTE
+  PAGADA
+  VENCIDA
+}
+
+enum MonedaDeuda {
+  ARS
+  USD
+  EUR
+}
+
+model Deuda {
+  id               String      @id @default(cuid())
+  tipo             TipoDeuda
+  estado           EstadoDeuda @default(PENDIENTE)
+  contraparte      String
+  descripcion      String?
+  moneda           MonedaDeuda @default(ARS)
+  montoTotal       Decimal     @db.Decimal(12, 2) @map("monto_total")
+  fechaVencimiento DateTime?   @map("fecha_vencimiento")
+  fechaPago        DateTime?   @map("fecha_pago")
+  usuarioId        String      @map("usuario_id")
+  empresaId        String?     @map("empresa_id")
+  creadoEn         DateTime    @default(now()) @map("creado_en")
+  actualizadoEn    DateTime    @updatedAt @map("actualizado_en")
+  usuario          Usuario     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  empresa          Empresa?    @relation(fields: [empresaId], references: [id], onDelete: SetNull)
+  cuotas           CuotaDeuda[]
+
+  @@index([usuarioId])
+  @@index([usuarioId, tipo])
+  @@index([usuarioId, estado])
+  @@map("deudas")
+}
+
+model CuotaDeuda {
+  id               String   @id @default(cuid())
+  numero           Int
+  monto            Decimal  @db.Decimal(12, 2)
+  fechaVencimiento DateTime @map("fecha_vencimiento")
+  fechaPago        DateTime? @map("fecha_pago")
+  pagada           Boolean  @default(false)
+  deudaId          String   @map("deuda_id")
+  creadoEn         DateTime @default(now()) @map("creado_en")
+  actualizadoEn    DateTime @updatedAt @map("actualizado_en")
+  deuda            Deuda    @relation(fields: [deudaId], references: [id], onDelete: Cascade)
+
+  @@index([deudaId])
+  @@map("cuotas_deuda")
 }

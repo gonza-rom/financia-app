@@ -10,14 +10,24 @@ interface AppShellProps {
 
 export function AppShell({ user, children }: AppShellProps) {
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-dvh bg-background">
       {/* Sidebar — solo visible en md+ */}
       <Sidebar user={user} />
 
       {/* Contenido principal */}
-      <main className="flex-1 overflow-y-auto">
-        {/* pb-20 en mobile para que la bottom nav no tape contenido */}
-        <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto pb-24 md:pb-8">
+      <main className="flex-1 min-w-0 overflow-y-auto">
+        {/*
+          pb-[calc(4rem+env(safe-area-inset-bottom))] en mobile
+          para que la bottom nav no tape el contenido, incluye el notch
+        */}
+        <div
+          className="
+            p-4 md:p-6 lg:p-8
+            max-w-7xl mx-auto
+            pb-[calc(4rem+env(safe-area-inset-bottom,0px))]
+            md:pb-8
+          "
+        >
           {children}
         </div>
       </main>

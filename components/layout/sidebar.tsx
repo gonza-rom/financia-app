@@ -12,6 +12,7 @@ import {
   LogOut,
   Car,
   Building2,
+  Landmark,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Usuario } from "@/types";
@@ -27,6 +28,7 @@ const NAV_ITEMS = [
   { href: "/categories",   label: "Categorías",    icon: Tag },
   { href: "/vehiculos",    label: "Vehículos",     icon: Car },
   { href: "/empresas",     label: "Empresas",      icon: Building2 },
+  { href: "/deudas",     label: "Deudas",      icon: Landmark  },
   { href: "/settings",     label: "Configuración", icon: Settings },
 ];
 
