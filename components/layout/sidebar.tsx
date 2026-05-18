@@ -10,6 +10,7 @@ import {
   Settings,
   DollarSign,
   LogOut,
+  Car,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Usuario } from "@/types";
@@ -20,10 +21,11 @@ import { getInitials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 const NAV_ITEMS = [
-  { href: "/dashboard",     label: "Dashboard",      icon: LayoutDashboard },
-  { href: "/transactions",  label: "Transacciones",  icon: ArrowLeftRight },
-  { href: "/categories",    label: "Categorías",     icon: Tag },
-  { href: "/settings",      label: "Configuración",  icon: Settings },
+  { href: "/dashboard",    label: "Dashboard",     icon: LayoutDashboard },
+  { href: "/transactions", label: "Transacciones", icon: ArrowLeftRight },
+  { href: "/categories",   label: "Categorías",    icon: Tag },
+  { href: "/vehiculos",    label: "Vehículos",     icon: Car },
+  { href: "/settings",     label: "Configuración", icon: Settings },
 ];
 
 interface SidebarProps {

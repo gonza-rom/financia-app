@@ -22,7 +22,9 @@ export const getCachedVehiculos = unstable_cache(
 
     return vehiculos.map((v) => ({
       ...v,
-      totalGastado: Number(totales.find((t) => t.vehiculoId === v.id)?._sum.monto ?? 0),
+      totalGastado: Number(
+        totales.find((t) => t.vehiculoId === v.id)?._sum.monto ?? 0
+      ),
     }));
   },
   ["vehiculos"],
@@ -34,7 +36,7 @@ export async function getVehiculoConSecciones(
   usuarioId: string
 ): Promise<VehiculoConSecciones | null> {
   const vehiculo = await prisma.vehiculo.findFirst({
-    where: { id: vehiculoId, usuarioId },
+    where: { id: vehiculoId, usuarioId, activo: true },
     include: {
       secciones: {
         orderBy: { orden: "asc" },
@@ -65,7 +67,9 @@ export async function getVehiculoConSecciones(
 
   const secciones: SeccionConGastos[] = vehiculo.secciones.map((s) => ({
     ...s,
-    totalGastado: Number(totalesPorSeccion.find((t) => t.seccionId === s.id)?._sum.monto ?? 0),
+    totalGastado: Number(
+      totalesPorSeccion.find((t) => t.seccionId === s.id)?._sum.monto ?? 0
+    ),
   }));
 
   return {

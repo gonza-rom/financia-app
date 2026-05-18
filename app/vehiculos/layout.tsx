@@ -2,7 +2,11 @@
 import { Sidebar } from "@/components/layout/sidebar";
 import { getCurrentUser } from "@/lib/auth";
 
-export default async function VehiculosLayout({ children }: { children: React.ReactNode }) {
+export default async function VehiculosLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const usuario = await getCurrentUser();
   return (
     <div className="flex h-screen overflow-hidden bg-background">
