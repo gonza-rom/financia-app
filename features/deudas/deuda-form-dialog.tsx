@@ -1,32 +1,33 @@
-// components/deudas/deuda-form-dialog.tsx
+// features/deudas/deuda-form-dialog.tsx
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import type { DeudaFormValues, Moneda, TipoDeuda } from "@/types/deudas";
+import { useToast } from "@/hooks/use-toast";
+import { crearDeuda } from "./actions";
 
-interface DeudaFormDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+type TipoDeuda = "cobrar" | "pagar";
+type Moneda = "ARS" | "USD" | "EUR";
+
+interface FormValues {
+  tipo: TipoDeuda;
+  contraparte: string;
+  moneda: Moneda;
+  montoTotal: number;
+  tieneCuotas: boolean;
+  cantidadCuotas: number;
+  descripcion: string;
+  fechaVencimiento: string;
 }
 
 const MONEDAS: { value: Moneda; label: string }[] = [
@@ -35,39 +36,68 @@ const MONEDAS: { value: Moneda; label: string }[] = [
   { value: "EUR", label: "EUR — Euro" },
 ];
 
-export function DeudaFormDialog({ open, onOpenChange }: DeudaFormDialogProps) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
+const INITIAL: FormValues = {
+  tipo: "cobrar",
+  contraparte: "",
+  moneda: "ARS",
+  montoTotal: 0,
+  tieneCuotas: false,
+  cantidadCuotas: 1,
+  descripcion: "",
+  fechaVencimiento: "",
+};
 
-  const [form, setForm] = useState<DeudaFormValues>({
-    tipo: "cobrar",
-    contraparte: "",
-    moneda: "ARS",
-    montoTotal: 0,
-    tieneCuotas: false,
-    cantidadCuotas: 1,
-    descripcion: "",
-    fechaVencimiento: "",
+interface DeudaFormDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  contraparteInicial?: string;
+  empresaIdInicial?: string;
+}
+
+export function DeudaFormDialog({ open, onOpenChange,contraparteInicial = "",empresaIdInicial }: DeudaFormDialogProps) {
+  const [form, setForm] = useState<FormValues>({
+    ...INITIAL,
+    contraparte: contraparteInicial,
   });
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
 
-  function set<K extends keyof DeudaFormValues>(key: K, value: DeudaFormValues[K]) {
+  function set<K extends keyof FormValues>(key: K, value: FormValues[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  async function handleSubmit() {
-    if (!form.contraparte || !form.montoTotal) return;
-    setLoading(true);
-    try {
-      await fetch("/api/deudas", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+  function handleSubmit() {
+    if (!form.contraparte.trim() || !form.montoTotal) {
+      toast({
+        variant: "destructive",
+        title: "Faltan datos",
+        description: "Completá la persona/empresa y el monto.",
       });
-      onOpenChange(false);
-      router.refresh();
-    } finally {
-      setLoading(false);
+      return;
     }
+
+    startTransition(async () => {
+      const result = await crearDeuda({
+        tipo: form.tipo.toUpperCase() as "COBRAR" | "PAGAR",
+        contraparte: form.contraparte.trim(),
+        moneda: form.moneda,
+        montoTotal: form.montoTotal,
+        tieneCuotas: form.tieneCuotas,
+        cantidadCuotas: form.tieneCuotas ? form.cantidadCuotas : null,
+        descripcion: form.descripcion.trim() || null,
+        fechaVencimiento: !form.tieneCuotas && form.fechaVencimiento
+          ? new Date(form.fechaVencimiento)
+          : null,
+      });
+
+      if (result.success) {
+        toast({ title: "Deuda registrada" });
+        setForm(INITIAL);
+        onOpenChange(false);
+      } else {
+        toast({ variant: "destructive", title: "Error", description: result.error });
+      }
+    });
   }
 
   return (
@@ -83,16 +113,16 @@ export function DeudaFormDialog({ open, onOpenChange }: DeudaFormDialogProps) {
             {(["cobrar", "pagar"] as TipoDeuda[]).map((t) => (
               <button
                 key={t}
+                type="button"
                 onClick={() => set("tipo", t)}
-                className={`
-                  rounded-lg border px-4 py-3 text-sm font-medium transition-colors
-                  ${form.tipo === t
+                className={[
+                  "rounded-lg border px-4 py-3 text-sm font-medium transition-colors",
+                  form.tipo === t
                     ? t === "cobrar"
-                      ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
-                      : "border-rose-500 bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
-                    : "border-border text-muted-foreground hover:border-foreground/30"
-                  }
-                `}
+                      ? "border-income bg-income/10 text-income"
+                      : "border-expense bg-expense/10 text-expense"
+                    : "border-border text-muted-foreground hover:border-foreground/30",
+                ].join(" ")}
               >
                 {t === "cobrar" ? "Me deben" : "Yo debo"}
               </button>
@@ -103,20 +133,25 @@ export function DeudaFormDialog({ open, onOpenChange }: DeudaFormDialogProps) {
           <div className="space-y-1.5">
             <Label>Persona o empresa</Label>
             <Input
-              placeholder="Nombre completo o razón social"
+              placeholder="Nombre o razón social"
               value={form.contraparte}
               onChange={(e) => set("contraparte", e.target.value)}
+              disabled={isPending}
             />
           </div>
 
           {/* Descripción */}
           <div className="space-y-1.5">
-            <Label>Descripción <span className="text-muted-foreground">(opcional)</span></Label>
+            <Label>
+              Descripción{" "}
+              <span className="text-muted-foreground font-normal">(opcional)</span>
+            </Label>
             <Textarea
-              placeholder="Motivo de la deuda..."
+              placeholder="Motivo de la deuda…"
               rows={2}
-              value={form.descripcion ?? ""}
+              value={form.descripcion}
               onChange={(e) => set("descripcion", e.target.value)}
+              disabled={isPending}
             />
           </div>
 
@@ -127,6 +162,7 @@ export function DeudaFormDialog({ open, onOpenChange }: DeudaFormDialogProps) {
               <Select
                 value={form.moneda}
                 onValueChange={(v) => set("moneda", v as Moneda)}
+                disabled={isPending}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -146,9 +182,11 @@ export function DeudaFormDialog({ open, onOpenChange }: DeudaFormDialogProps) {
               <Input
                 type="number"
                 min={0}
-                placeholder="0"
+                step="0.01"
+                placeholder="0.00"
                 value={form.montoTotal || ""}
                 onChange={(e) => set("montoTotal", Number(e.target.value))}
+                disabled={isPending}
               />
             </div>
           </div>
@@ -162,10 +200,11 @@ export function DeudaFormDialog({ open, onOpenChange }: DeudaFormDialogProps) {
             <Switch
               checked={form.tieneCuotas}
               onCheckedChange={(v) => set("tieneCuotas", v)}
+              disabled={isPending}
             />
           </div>
 
-          {/* Cuotas o fecha de vencimiento */}
+          {/* Cuotas o vencimiento */}
           {form.tieneCuotas ? (
             <div className="space-y-1.5">
               <Label>Cantidad de cuotas</Label>
@@ -173,28 +212,37 @@ export function DeudaFormDialog({ open, onOpenChange }: DeudaFormDialogProps) {
                 type="number"
                 min={2}
                 max={120}
-                value={form.cantidadCuotas ?? 1}
+                value={form.cantidadCuotas}
                 onChange={(e) => set("cantidadCuotas", Number(e.target.value))}
+                disabled={isPending}
               />
             </div>
           ) : (
             <div className="space-y-1.5">
-              <Label>Fecha de vencimiento <span className="text-muted-foreground">(opcional)</span></Label>
+              <Label>
+                Fecha de vencimiento{" "}
+                <span className="text-muted-foreground font-normal">(opcional)</span>
+              </Label>
               <Input
                 type="date"
-                value={form.fechaVencimiento ?? ""}
+                value={form.fechaVencimiento}
                 onChange={(e) => set("fechaVencimiento", e.target.value)}
+                disabled={isPending}
               />
             </div>
           )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isPending}
+          >
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={loading}>
-            {loading ? "Guardando…" : "Guardar deuda"}
+          <Button onClick={handleSubmit} disabled={isPending}>
+            {isPending ? "Guardando…" : "Guardar deuda"}
           </Button>
         </DialogFooter>
       </DialogContent>

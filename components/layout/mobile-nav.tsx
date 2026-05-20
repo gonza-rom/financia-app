@@ -9,15 +9,19 @@ import {
   Landmark,
   Car,
   Settings,
+  Tag,
+  Building2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { href: "/dashboard",    label: "Inicio",      icon: LayoutDashboard },
-  { href: "/transactions", label: "Movimientos", icon: ArrowLeftRight },
-  { href: "/deudas",       label: "Deudas",      icon: Landmark },
-  { href: "/vehiculos",    label: "Vehículos",   icon: Car },
-  { href: "/settings",     label: "Config",      icon: Settings },
+  { href: "/dashboard",    label: "Dashboard",     icon: LayoutDashboard },
+  { href: "/transactions", label: "Transacciones", icon: ArrowLeftRight },
+  { href: "/categories",   label: "Categorías",    icon: Tag },
+  { href: "/vehiculos",    label: "Vehículos",     icon: Car },
+  { href: "/empresas",     label: "Empresas",      icon: Building2 },
+  { href: "/deudas",     label: "Deudas",      icon: Landmark  },
+  { href: "/settings",     label: "Configuración", icon: Settings },
 ];
 
 export function MobileNav() {
