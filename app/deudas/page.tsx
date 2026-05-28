@@ -8,13 +8,16 @@ export const metadata = { title: "Deudas" };
 export default async function DeudasPage() {
   const deudas = await getDeudas();
 
-  const totalCobrar = deudas
-    .filter((d) => d.tipo === "cobrar" && d.estado !== "pagada")
-    .reduce((acc, d) => acc + d.montoTotal, 0);
+  // Usar saldo pendiente real (montoTotal - montoPagado) en vez del total bruto
+  const activas = deudas.filter((d) => d.estado !== "pagada");
 
-  const totalPagar = deudas
-    .filter((d) => d.tipo === "pagar" && d.estado !== "pagada")
-    .reduce((acc, d) => acc + d.montoTotal, 0);
+  const totalCobrar = activas
+    .filter((d) => d.tipo === "cobrar")
+    .reduce((acc, d) => acc + (d.montoTotal - (d.montoPagado ?? 0)), 0);
+
+  const totalPagar = activas
+    .filter((d) => d.tipo === "pagar")
+    .reduce((acc, d) => acc + (d.montoTotal - (d.montoPagado ?? 0)), 0);
 
   const vencidas = deudas.filter((d) => d.estado === "vencida").length;
 

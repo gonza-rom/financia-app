@@ -1,11 +1,20 @@
 // features/deudas/queries.ts
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import type { Deuda, ResumenDeudas, Moneda } from "@/types/deudas";
+import type { Deuda, ResumenDeudas, Moneda, PagoDeuda } from "@/types/deudas";
 import type { EstadoDeuda } from "@prisma/client";
 
+// ─── Mapper ───────────────────────────────────────────────────────────────────
 
-// ─── Helper mapper ────────────────────────────────────────────────────────────
+function mapPago(raw: any): PagoDeuda {
+  return {
+    id: raw.id,
+    monto: Number(raw.monto),
+    fecha: raw.fecha.toISOString(),
+    notas: raw.notas ?? undefined,
+    creadoEn: raw.creadoEn.toISOString(),
+  };
+}
 
 function mapDeuda(raw: any): Deuda {
   return {
@@ -17,6 +26,7 @@ function mapDeuda(raw: any): Deuda {
     descripcion: raw.descripcion ?? undefined,
     moneda: raw.moneda as Moneda,
     montoTotal: Number(raw.montoTotal),
+    montoPagado: Number(raw.montoPagado ?? 0),
     fechaVencimiento: raw.fechaVencimiento?.toISOString(),
     fechaPago: raw.fechaPago?.toISOString(),
     cuotas: raw.cuotas?.map((c: any) => ({
@@ -27,6 +37,7 @@ function mapDeuda(raw: any): Deuda {
       fechaPago: c.fechaPago?.toISOString(),
       pagada: c.pagada,
     })),
+    pagos: raw.pagos?.map(mapPago),
     creadaEn: raw.creadoEn.toISOString(),
     actualizadaEn: raw.actualizadoEn.toISOString(),
   };
@@ -65,7 +76,7 @@ async function sincronizarVencidas(usuarioId: string) {
   }
 }
 
-// ─── Queries públicas ─────────────────────────────────────────────────────────
+// ─── Queries ──────────────────────────────────────────────────────────────────
 
 export async function getDeudas(): Promise<Deuda[]> {
   const usuario = await getCurrentUser();
@@ -74,7 +85,10 @@ export async function getDeudas(): Promise<Deuda[]> {
 
   const rows = await prisma.deuda.findMany({
     where: { usuarioId: usuario.id },
-    include: { cuotas: { orderBy: { numero: "asc" } } },
+    include: {
+      cuotas: { orderBy: { numero: "asc" } },
+      pagos: { orderBy: { fecha: "desc" } },
+    },
     orderBy: { creadoEn: "desc" },
   });
 
@@ -86,7 +100,10 @@ export async function getDeuda(id: string): Promise<Deuda | null> {
 
   const row = await prisma.deuda.findFirst({
     where: { id, usuarioId: usuario.id },
-    include: { cuotas: { orderBy: { numero: "asc" } } },
+    include: {
+      cuotas: { orderBy: { numero: "asc" } },
+      pagos: { orderBy: { fecha: "desc" } },
+    },
   });
   return row ? mapDeuda(row) : null;
 }
@@ -94,7 +111,6 @@ export async function getDeuda(id: string): Promise<Deuda | null> {
 export async function getResumenDeudas(moneda: Moneda = "ARS"): Promise<ResumenDeudas> {
   const usuario = await getCurrentUser();
   const usuarioId = usuario.id;
-
   const estadosActivos: EstadoDeuda[] = ["PENDIENTE", "VENCIDA"];
 
   const [cobrar, pagar, vencidas] = await Promise.all([

@@ -1,10 +1,10 @@
 // types/deudas.ts
 
-export type TipoDeuda = "cobrar" | "pagar"; // cobrar = me deben, pagar = yo debo
+export type TipoDeuda = "cobrar" | "pagar";
 export type EstadoDeuda = "pendiente" | "pagada" | "vencida";
 export type Moneda = "ARS" | "USD" | "EUR";
 
-export interface Cuota {
+export interface CuotaDeuda {
   id: string;
   numero: number;
   monto: number;
@@ -13,30 +13,29 @@ export interface Cuota {
   pagada: boolean;
 }
 
+export interface PagoDeuda {
+  id: string;
+  monto: number;
+  fecha: string;    // ISO date
+  notas?: string;
+  creadoEn: string; // ISO datetime
+}
+
 export interface Deuda {
   id: string;
   tipo: TipoDeuda;
   estado: EstadoDeuda;
-
-  /** Persona o empresa involucrada */
   contraparte: string;
-  /** ID opcional si está vinculada a una empresa existente */
   empresaId?: string;
-
   descripcion?: string;
-
   moneda: Moneda;
   montoTotal: number;
-
-  /** Si tiene cuotas, se usa este arreglo; si no, es pago único */
-  cuotas?: Cuota[];
-
-  /** Fecha de vencimiento para pagos únicos (sin cuotas) */
-  fechaVencimiento?: string; // ISO date
-  /** Fecha en que se saldó (para pagos únicos) */
-  fechaPago?: string;        // ISO date
-
-  creadaEn: string; // ISO datetime
+  montoPagado: number;      // suma de pagos parciales o cuotas pagadas
+  fechaVencimiento?: string;
+  fechaPago?: string;
+  cuotas?: CuotaDeuda[];
+  pagos?: PagoDeuda[];
+  creadaEn: string;
   actualizadaEn: string;
 }
 

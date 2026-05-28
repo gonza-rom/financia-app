@@ -1,22 +1,29 @@
-// components/deudas/deuda-header.tsx
+// features/deudas/deuda-header.tsx
 import { TrendingDown, TrendingUp, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { Moneda } from "@/types/deudas";
 
 interface DeudaHeaderProps {
   totalCobrar: number;
   totalPagar: number;
   vencidas: number;
+  moneda?: Moneda;
 }
 
-function formatMoney(amount: number) {
+function formatMoney(amount: number, moneda: Moneda = "ARS") {
   return new Intl.NumberFormat("es-AR", {
     style: "currency",
-    currency: "ARS",
+    currency: moneda,
     maximumFractionDigits: 0,
   }).format(amount);
 }
 
-export function DeudaHeader({ totalCobrar, totalPagar, vencidas }: DeudaHeaderProps) {
+export function DeudaHeader({
+  totalCobrar,
+  totalPagar,
+  vencidas,
+  moneda = "ARS",
+}: DeudaHeaderProps) {
   const balance = totalCobrar - totalPagar;
   const isPositive = balance >= 0;
 
@@ -46,8 +53,8 @@ export function DeudaHeader({ totalCobrar, totalPagar, vencidas }: DeudaHeaderPr
             <TrendingUp className="size-4 text-emerald-500" />
             Me deben
           </div>
-          <p className="text-xl font-semibold text-emerald-600 dark:text-emerald-400">
-            {formatMoney(totalCobrar)}
+          <p className="text-xl font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+            {formatMoney(totalCobrar, moneda)}
           </p>
         </div>
 
@@ -57,8 +64,8 @@ export function DeudaHeader({ totalCobrar, totalPagar, vencidas }: DeudaHeaderPr
             <TrendingDown className="size-4 text-rose-500" />
             Yo debo
           </div>
-          <p className="text-xl font-semibold text-rose-600 dark:text-rose-400">
-            {formatMoney(totalPagar)}
+          <p className="text-xl font-semibold tabular-nums text-rose-600 dark:text-rose-400">
+            {formatMoney(totalPagar, moneda)}
           </p>
         </div>
 
@@ -71,19 +78,17 @@ export function DeudaHeader({ totalCobrar, totalPagar, vencidas }: DeudaHeaderPr
               : "border-rose-200 bg-rose-50 dark:border-rose-900 dark:bg-rose-950/40"
           )}
         >
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            Balance neto
-          </div>
+          <div className="text-sm text-muted-foreground">Balance neto</div>
           <p
             className={cn(
-              "text-xl font-semibold",
+              "text-xl font-semibold tabular-nums",
               isPositive
                 ? "text-emerald-700 dark:text-emerald-300"
                 : "text-rose-700 dark:text-rose-300"
             )}
           >
             {isPositive ? "+" : ""}
-            {formatMoney(balance)}
+            {formatMoney(balance, moneda)}
           </p>
         </div>
       </div>

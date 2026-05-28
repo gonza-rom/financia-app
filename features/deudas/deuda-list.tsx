@@ -28,7 +28,7 @@ function groupByContraparte(deudas: Deuda[]) {
     map.get(key)!.deudas.push(deuda);
   }
 
-  // Ordenar: primero las que tienen vencidas, luego por nombre
+  // Primero las que tienen vencidas, luego por nombre
   return Array.from(map.values()).sort((a, b) => {
     const aVencida = a.deudas.some((d) => d.estado === "vencida");
     const bVencida = b.deudas.some((d) => d.estado === "vencida");
@@ -41,14 +41,17 @@ function groupByContraparte(deudas: Deuda[]) {
 export function DeudaList({ deudas }: DeudaListProps) {
   const [open, setOpen] = useState(false);
 
-  const cobrar = useMemo(
-    () => groupByContraparte(deudas.filter((d) => d.tipo === "cobrar")),
+  const cobrarDeudas = useMemo(
+    () => deudas.filter((d) => d.tipo === "cobrar"),
     [deudas]
   );
-  const pagar = useMemo(
-    () => groupByContraparte(deudas.filter((d) => d.tipo === "pagar")),
+  const pagarDeudas = useMemo(
+    () => deudas.filter((d) => d.tipo === "pagar"),
     [deudas]
   );
+
+  const cobrar = useMemo(() => groupByContraparte(cobrarDeudas), [cobrarDeudas]);
+  const pagar  = useMemo(() => groupByContraparte(pagarDeudas),  [pagarDeudas]);
 
   return (
     <>
@@ -57,17 +60,17 @@ export function DeudaList({ deudas }: DeudaListProps) {
           <TabsList>
             <TabsTrigger value="cobrar">
               Me deben
-              {cobrar.length > 0 && (
-                <span className="ml-2 text-xs bg-muted rounded-full px-1.5 py-0.5">
-                  {cobrar.length}
+              {cobrarDeudas.length > 0 && (
+                <span className="ml-2 text-xs bg-muted rounded-full px-1.5 py-0.5 tabular-nums">
+                  {cobrarDeudas.length}
                 </span>
               )}
             </TabsTrigger>
             <TabsTrigger value="pagar">
               Yo debo
-              {pagar.length > 0 && (
-                <span className="ml-2 text-xs bg-muted rounded-full px-1.5 py-0.5">
-                  {pagar.length}
+              {pagarDeudas.length > 0 && (
+                <span className="ml-2 text-xs bg-muted rounded-full px-1.5 py-0.5 tabular-nums">
+                  {pagarDeudas.length}
                 </span>
               )}
             </TabsTrigger>
