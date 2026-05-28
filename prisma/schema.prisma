@@ -30,7 +30,7 @@ model Usuario {
   categorias    Categoria[]
   vehiculos     Vehiculo[]
   empresas  Empresa[]
-  deudas        Deuda[]
+  deudas        Deuda[] 
 
   @@map("usuarios")
 }
@@ -69,6 +69,7 @@ model Transaccion {
   reglaRecurrente ReglaRecurrente?
   cobroProyecto  CobroProyecto?
   gastoEmpresa   GastoEmpresa?
+  gastoVehiculo   GastoVehiculo?
 
   @@index([usuarioId])
   @@index([usuarioId, fecha])
@@ -143,10 +144,12 @@ model GastoVehiculo {
   proximoKm      Int?            @map("proximo_km") // Para service/mantenimiento
   vehiculoId     String          @map("vehiculo_id")
   seccionId      String          @map("seccion_id")
+  transaccionId   String?         @unique @map("transaccion_id")  // ← campo FK
   creadoEn       DateTime        @default(now()) @map("creado_en")
   actualizadoEn  DateTime        @updatedAt @map("actualizado_en")
   vehiculo       Vehiculo        @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
   seccion        SeccionVehiculo @relation(fields: [seccionId], references: [id], onDelete: Cascade)
+  transaccion     Transaccion?    @relation(fields: [transaccionId], references: [id], onDelete: SetNull)
 
   @@index([vehiculoId])
   @@index([seccionId])

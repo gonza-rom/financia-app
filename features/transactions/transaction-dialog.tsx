@@ -3,7 +3,6 @@
 
 import { useForm } from "react-hook-form";
 import { useTransition } from "react";
-import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +13,7 @@ import { TipoTransaccion } from "@prisma/client";
 import { createTransactionAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { parseFechaLocal, formatFechaInput } from "@/lib/utils-fecha";
 
 interface TransactionDialogProps {
   categorias: Categoria[];
@@ -26,7 +26,11 @@ export function TransactionDialog({ categorias, open, onOpenChange }: Transactio
   const { toast } = useToast();
 
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FormularioTransaccion>({
-    defaultValues: { tipo: TipoTransaccion.GASTO, fecha: new Date(), esRecurrente: false },
+    defaultValues: {
+      tipo: TipoTransaccion.GASTO,
+      fecha: new Date(),
+      esRecurrente: false,
+    },
   });
 
   const tipoSeleccionado = watch("tipo");
@@ -64,18 +68,21 @@ export function TransactionDialog({ categorias, open, onOpenChange }: Transactio
               </button>
             ))}
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="monto">Monto</Label>
             <Input id="monto" type="number" step="0.01" min="0.01" placeholder="0.00"
               {...register("monto", { required: true, valueAsNumber: true, min: 0.01 })}
               className={errors.monto ? "border-destructive" : ""} />
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="descripcion">Descripción</Label>
             <Input id="descripcion" placeholder="¿Para qué fue?"
               {...register("descripcion", { required: true })}
               className={errors.descripcion ? "border-destructive" : ""} />
           </div>
+
           <div className="space-y-2">
             <Label>Categoría</Label>
             <Select onValueChange={(v) => setValue("categoriaId", v)}>
@@ -98,15 +105,25 @@ export function TransactionDialog({ categorias, open, onOpenChange }: Transactio
               </SelectContent>
             </Select>
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="fecha">Fecha</Label>
-            <Input id="fecha" type="date" defaultValue={format(new Date(), "yyyy-MM-dd")}
-              {...register("fecha", { required: true, setValueAs: (v) => new Date(v) })} />
+            <Input
+              id="fecha"
+              type="date"
+              defaultValue={formatFechaInput(new Date())}
+              {...register("fecha", {
+                required: true,
+                setValueAs: parseFechaLocal,
+              })}
+            />
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="notas">Notas (opcional)</Label>
             <Input id="notas" placeholder="Alguna nota…" {...register("notas")} />
           </div>
+
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button type="submit" className="flex-1" disabled={isPending}>{isPending ? "Guardando…" : "Guardar"}</Button>

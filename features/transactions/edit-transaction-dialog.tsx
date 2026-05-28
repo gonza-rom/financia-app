@@ -18,6 +18,7 @@ import {
 import type { Categoria, FormularioTransaccion, TransaccionConCategoria } from "@/types";
 import { updateTransactionAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
+import { parseFechaLocal, formatFechaInput } from "@/lib/utils-fecha";
 
 interface EditTransactionDialogProps {
   transaccion: TransaccionConCategoria;
@@ -115,8 +116,8 @@ export function EditTransactionDialog({
             <Input
               id="edit-fecha"
               type="date"
-              defaultValue={format(new Date(transaccion.fecha), "yyyy-MM-dd")}
-              {...register("fecha", { setValueAs: (v) => new Date(v) })}
+              defaultValue={formatFechaInput(transaccion.fecha)}
+              {...register("fecha", { setValueAs: parseFechaLocal })}
             />
           </div>
 

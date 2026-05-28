@@ -175,7 +175,10 @@ export async function eliminarSeccionAction(id: string): Promise<Resultado> {
 export async function crearGastoVehiculoAction(
   vehiculoId: string,
   seccionId: string,
-  data: FormularioGastoVehiculo
+  data: FormularioGastoVehiculo & {
+    registrarEnFinanzas?: boolean;
+    categoriaId?: string;
+  }
 ): Promise<Resultado<{ id: string }>> {
   try {
     const usuario = await getCurrentUser();
@@ -185,6 +188,30 @@ export async function crearGastoVehiculoAction(
     });
     if (!vehiculo) return { success: false, error: "Vehículo no encontrado." };
 
+    if (data.registrarEnFinanzas && !data.categoriaId) {
+      return { success: false, error: "Seleccioná una categoría para registrar en finanzas." };
+    }
+
+    // Crear transacción personal si se solicita
+    let transaccionId: string | undefined;
+
+    if (data.registrarEnFinanzas && data.categoriaId) {
+      const transaccion = await prisma.transaccion.create({
+        data: {
+          monto: data.monto,
+          descripcion: data.descripcion.trim(), // misma descripción
+          tipo: "GASTO",
+          fecha: data.fecha,
+          notas: data.notas?.trim() || null,
+          esRecurrente: false,
+          usuarioId: usuario.id,
+          categoriaId: data.categoriaId,
+        },
+      });
+      transaccionId = transaccion.id;
+    }
+
+    // Crear el gasto del vehículo vinculado a la transacción
     const gasto = await prisma.gastoVehiculo.create({
       data: {
         monto: data.monto,
@@ -198,10 +225,11 @@ export async function crearGastoVehiculoAction(
         proximoKm: data.proximoKm ?? null,
         vehiculoId,
         seccionId,
+        ...(transaccionId && { transaccionId }),
       },
     });
 
-    // Actualizar kilometraje del vehículo si se informó
+    // Actualizar km del vehículo si el nuevo es mayor
     if (data.kilometraje && data.kilometraje > (vehiculo.kilometraje ?? 0)) {
       await prisma.vehiculo.update({
         where: { id: vehiculoId },
@@ -211,6 +239,9 @@ export async function crearGastoVehiculoAction(
 
     revalidateTag("vehiculos");
     revalidatePath(`/vehiculos/${vehiculoId}`);
+    revalidatePath("/dashboard");
+    revalidatePath("/transacciones");
+
     return { success: true, data: { id: gasto.id } };
   } catch (err) {
     console.error("[crearGastoVehiculo]", err);

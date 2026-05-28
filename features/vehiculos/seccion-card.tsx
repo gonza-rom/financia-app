@@ -12,14 +12,16 @@ import { eliminarGastoVehiculoAction } from "./actions";
 import { GastoDialog } from "./gasto-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { Categoria } from "@prisma/client";
 
 interface SeccionCardProps {
   vehiculoId: string;
   seccion: SeccionConGastos;
   moneda: string;
+  categorias: Categoria[];
 }
 
-export function SeccionCard({ vehiculoId, seccion, moneda }: SeccionCardProps) {
+export function SeccionCard({ vehiculoId, seccion, moneda,categorias }: SeccionCardProps) {
   const [expandido, setExpandido] = useState(false);
   const [dialogGasto, setDialogGasto] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -186,6 +188,7 @@ export function SeccionCard({ vehiculoId, seccion, moneda }: SeccionCardProps) {
       <GastoDialog
         vehiculoId={vehiculoId}
         seccion={seccion}
+        categorias={categorias}
         open={dialogGasto}
         onOpenChange={setDialogGasto}
       />
