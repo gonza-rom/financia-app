@@ -18,6 +18,7 @@ type CrearDeudaInput = {
   empresaId?: string;
   tieneCuotas: boolean;
   cantidadCuotas?: number | null;
+  categoriaId?: string; // ← nuevo
 };
 
 export type ResultadoAccion<T = void> =
@@ -55,23 +56,48 @@ export async function crearDeuda(
         ? generarCuotas(input.montoTotal, input.cantidadCuotas)
         : undefined;
 
-    const deuda = await prisma.deuda.create({
-      data: {
-        tipo: input.tipo,
-        contraparte: input.contraparte.trim(),
-        descripcion: input.descripcion?.trim() || null,
-        moneda: input.moneda,
-        montoTotal: input.montoTotal,
-        montoPagado: 0,
-        fechaVencimiento: input.fechaVencimiento ?? null,
-        usuarioId: usuario.id,
-        empresaId: input.empresaId,
-        cuotas: cuotas ? { create: cuotas } : undefined,
-      },
+    await prisma.$transaction(async (tx) => {
+      const deuda = await tx.deuda.create({
+        data: {
+          tipo: input.tipo,
+          contraparte: input.contraparte.trim(),
+          descripcion: input.descripcion?.trim() || null,
+          moneda: input.moneda,
+          montoTotal: input.montoTotal,
+          montoPagado: 0,
+          fechaVencimiento: input.fechaVencimiento ?? null,
+          usuarioId: usuario.id,
+          empresaId: input.empresaId,
+          cuotas: cuotas ? { create: cuotas } : undefined,
+        },
+      });
+
+      if (input.categoriaId) {
+        const descripcion = input.tipo === "COBRAR"
+          ? `Préstamo a ${input.contraparte.trim()}`
+          : `Deuda con ${input.contraparte.trim()}`;
+
+        await tx.transaccion.create({
+          data: {
+            monto: input.montoTotal,
+            descripcion,
+            // COBRAR = prestás = gasto; PAGAR = te prestan = ingreso
+            tipo: input.tipo === "COBRAR" ? "GASTO" : "INGRESO",
+            fecha: new Date(),
+            esRecurrente: false,
+            usuarioId: usuario.id,
+            categoriaId: input.categoriaId,
+          },
+        });
+      }
+
+      return deuda;
     });
 
     revalidatePath("/deudas");
-    return { success: true, data: { id: deuda.id } };
+    revalidatePath("/transacciones");
+    revalidatePath("/dashboard");
+    return { success: true, data: { id: "" } }; // el id no lo necesitás afuera
   } catch (error) {
     console.error("[crearDeuda]", error);
     return { success: false, error: "No se pudo crear la deuda." };
@@ -83,7 +109,8 @@ export async function crearDeuda(
 export async function registrarPagoDeuda(
   deudaId: string,
   monto: number,
-  notas?: string
+  notas?: string,
+  categoriaId?: string,   // ← nuevo parámetro
 ): Promise<ResultadoAccion> {
   try {
     const usuario = await getCurrentUser();
@@ -96,7 +123,6 @@ export async function registrarPagoDeuda(
     if (deuda.estado === "PAGADA") return { success: false, error: "La deuda ya está pagada." };
     if (monto <= 0) return { success: false, error: "El monto debe ser mayor a cero." };
 
-    // Convertir Decimal → number de forma segura
     const montoTotalNum  = toNumber(deuda.montoTotal);
     const montoPagadoNum = toNumber(deuda.montoPagado);
     const saldoPendiente = montoTotalNum - montoPagadoNum;
@@ -111,6 +137,28 @@ export async function registrarPagoDeuda(
     const nuevoMontoPagado = montoPagadoNum + monto;
     const pagadaCompleta   = nuevoMontoPagado >= montoTotalNum - 0.01;
 
+    // Crear transacción si se pasó categoría
+    let transaccionId: string | undefined;
+    if (categoriaId) {
+      const descripcion = deuda.tipo === "COBRAR"
+        ? `Cobro de deuda — ${deuda.contraparte}`
+        : `Pago de deuda — ${deuda.contraparte}`;
+
+      const transaccion = await prisma.transaccion.create({
+        data: {
+          monto,
+          descripcion,
+          tipo: deuda.tipo === "COBRAR" ? "INGRESO" : "GASTO",
+          fecha: new Date(),
+          notas: notas?.trim() || null,
+          esRecurrente: false,
+          usuarioId: usuario.id,
+          categoriaId,
+        },
+      });
+      transaccionId = transaccion.id;
+    }
+
     await prisma.$transaction([
       prisma.pagoDeuda.create({
         data: {
@@ -118,6 +166,7 @@ export async function registrarPagoDeuda(
           monto,
           notas: notas?.trim() || null,
           fecha: new Date(),
+          ...(transaccionId && { transaccionId }),
         },
       }),
       prisma.deuda.update({
@@ -130,6 +179,8 @@ export async function registrarPagoDeuda(
     ]);
 
     revalidatePath("/deudas");
+    revalidatePath("/dashboard");
+    revalidatePath("/transacciones");
     return { success: true, data: undefined };
   } catch (error) {
     console.error("[registrarPagoDeuda]", error);
@@ -214,23 +265,65 @@ export async function actualizarDeuda(input: {
 
 // ─── Marcar deuda como pagada ─────────────────────────────────────────────────
 
-export async function marcarDeudaPagada(id: string): Promise<ResultadoAccion> {
+export async function marcarDeudaPagada(
+  id: string,
+  categoriaId?: string,   // ← nuevo parámetro
+): Promise<ResultadoAccion> {
   try {
     const usuario = await getCurrentUser();
 
     const deuda = await prisma.deuda.findFirst({ where: { id, usuarioId: usuario.id } });
     if (!deuda) return { success: false, error: "Deuda no encontrada." };
 
-    await prisma.deuda.update({
-      where: { id },
-      data: {
-        estado: "PAGADA",
-        fechaPago: new Date(),
-        montoPagado: deuda.montoTotal, // saldar completamente
-      },
-    });
+    const montoRestante = toNumber(deuda.montoTotal) - toNumber(deuda.montoPagado);
+
+    // Crear transacción por el monto restante si se pasó categoría
+    let transaccionId: string | undefined;
+    if (categoriaId && montoRestante > 0) {
+      const descripcion = deuda.tipo === "COBRAR"
+        ? `Cobro de deuda — ${deuda.contraparte}`
+        : `Pago de deuda — ${deuda.contraparte}`;
+
+      const transaccion = await prisma.transaccion.create({
+        data: {
+          monto: montoRestante,
+          descripcion,
+          tipo: deuda.tipo === "COBRAR" ? "INGRESO" : "GASTO",
+          fecha: new Date(),
+          esRecurrente: false,
+          usuarioId: usuario.id,
+          categoriaId,
+        },
+      });
+      transaccionId = transaccion.id;
+    }
+
+    // Si hay monto restante, crear también el PagoDeuda
+    await prisma.$transaction([
+      ...(montoRestante > 0
+        ? [prisma.pagoDeuda.create({
+            data: {
+              deudaId: id,
+              monto: montoRestante,
+              fecha: new Date(),
+              notas: "Saldado completo",
+              ...(transaccionId && { transaccionId }),
+            },
+          })]
+        : []),
+      prisma.deuda.update({
+        where: { id },
+        data: {
+          estado: "PAGADA",
+          fechaPago: new Date(),
+          montoPagado: deuda.montoTotal,
+        },
+      }),
+    ]);
 
     revalidatePath("/deudas");
+    revalidatePath("/dashboard");
+    revalidatePath("/transacciones");
     return { success: true, data: undefined };
   } catch (error) {
     console.error("[marcarDeudaPagada]", error);

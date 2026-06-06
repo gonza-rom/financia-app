@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { crearDeuda } from "./actions";
+import type { Categoria } from "@/types";
 
 type TipoDeuda = "cobrar" | "pagar";
 type Moneda = "ARS" | "USD" | "EUR";
@@ -28,6 +29,7 @@ interface FormValues {
   cantidadCuotas: number;
   descripcion: string;
   fechaVencimiento: string;
+  categoriaId: string | undefined;
 }
 
 const MONEDAS: { value: Moneda; label: string }[] = [
@@ -45,6 +47,7 @@ const INITIAL: FormValues = {
   cantidadCuotas: 1,
   descripcion: "",
   fechaVencimiento: "",
+  categoriaId: undefined,
 };
 
 interface DeudaFormDialogProps {
@@ -52,9 +55,16 @@ interface DeudaFormDialogProps {
   onOpenChange: (open: boolean) => void;
   contraparteInicial?: string;
   empresaIdInicial?: string;
+  categorias?: Categoria[];
 }
 
-export function DeudaFormDialog({ open, onOpenChange,contraparteInicial = "",empresaIdInicial }: DeudaFormDialogProps) {
+export function DeudaFormDialog({
+  open,
+  onOpenChange,
+  contraparteInicial = "",
+  empresaIdInicial,
+  categorias = [],
+}: DeudaFormDialogProps) {
   const [form, setForm] = useState<FormValues>({
     ...INITIAL,
     contraparte: contraparteInicial,
@@ -65,6 +75,16 @@ export function DeudaFormDialog({ open, onOpenChange,contraparteInicial = "",emp
   function set<K extends keyof FormValues>(key: K, value: FormValues[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
+
+  // Al cambiar el tipo, limpiar la categoría porque cambia INGRESO/GASTO
+  function handleTipoChange(tipo: TipoDeuda) {
+    setForm((prev) => ({ ...prev, tipo, categoriaId: undefined }));
+  }
+
+  const categoriasRelevantes = categorias.filter((c) =>
+    // COBRAR = prestás = GASTO; PAGAR = te prestan = INGRESO
+    form.tipo === "cobrar" ? c.tipo === "GASTO" : c.tipo === "INGRESO"
+  );
 
   function handleSubmit() {
     if (!form.contraparte.trim() || !form.montoTotal) {
@@ -88,11 +108,12 @@ export function DeudaFormDialog({ open, onOpenChange,contraparteInicial = "",emp
         fechaVencimiento: !form.tieneCuotas && form.fechaVencimiento
           ? new Date(form.fechaVencimiento)
           : null,
+        categoriaId: form.categoriaId,
       });
 
       if (result.success) {
         toast({ title: "Deuda registrada" });
-        setForm(INITIAL);
+        setForm({ ...INITIAL, contraparte: contraparteInicial });
         onOpenChange(false);
       } else {
         toast({ variant: "destructive", title: "Error", description: result.error });
@@ -114,7 +135,7 @@ export function DeudaFormDialog({ open, onOpenChange,contraparteInicial = "",emp
               <button
                 key={t}
                 type="button"
-                onClick={() => set("tipo", t)}
+                onClick={() => handleTipoChange(t)}
                 className={[
                   "rounded-lg border px-4 py-3 text-sm font-medium transition-colors",
                   form.tipo === t
@@ -231,6 +252,61 @@ export function DeudaFormDialog({ open, onOpenChange,contraparteInicial = "",emp
               />
             </div>
           )}
+
+          {/* Categoría para registrar en finanzas */}
+          <div className="space-y-1.5">
+            <Label>
+              Registrar en finanzas{" "}
+              <span className="text-muted-foreground font-normal">(opcional)</span>
+            </Label>
+            {categoriasRelevantes.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                No tenés categorías de {form.tipo === "cobrar" ? "gasto" : "ingreso"}.
+                Creá una en la sección Categorías.
+              </p>
+            ) : (
+              <>
+                <Select
+                  value={form.categoriaId ?? "ninguna"}
+                  onValueChange={(v) => set("categoriaId", v === "ninguna" ? undefined : v)}
+                  disabled={isPending}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sin categoría" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ninguna">
+                      Sin categoría (no registra transacción)
+                    </SelectItem>
+                    {categoriasRelevantes.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="size-2 rounded-full shrink-0"
+                            style={{ backgroundColor: cat.color }}
+                          />
+                          {cat.nombre}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {form.categoriaId && form.montoTotal > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Se registrará un {form.tipo === "cobrar" ? "gasto" : "ingreso"} de{" "}
+                    <span className="font-medium">
+                      {new Intl.NumberFormat("es-AR", {
+                        style: "currency",
+                        currency: form.moneda,
+                        maximumFractionDigits: 0,
+                      }).format(form.montoTotal)}
+                    </span>{" "}
+                    en tu historial.
+                  </p>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         <DialogFooter>

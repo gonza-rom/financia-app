@@ -2,13 +2,19 @@
 import { DeudaList } from "@/features/deudas/deuda-list";
 import { DeudaHeader } from "@/features/deudas/deuda-header";
 import { getDeudas } from "@/features/deudas/queries";
+import { getCategorias } from "@/features/categories/queries";
+import { getCurrentUser } from "@/lib/auth";
 
 export const metadata = { title: "Deudas" };
 
 export default async function DeudasPage() {
-  const deudas = await getDeudas();
+  const usuario = await getCurrentUser();
 
-  // Usar saldo pendiente real (montoTotal - montoPagado) en vez del total bruto
+  const [deudas, categorias] = await Promise.all([
+    getDeudas(),
+    getCategorias(usuario.id),
+  ]);
+
   const activas = deudas.filter((d) => d.estado !== "pagada");
 
   const totalCobrar = activas
@@ -28,7 +34,7 @@ export default async function DeudasPage() {
         totalPagar={totalPagar}
         vencidas={vencidas}
       />
-      <DeudaList deudas={deudas} />
+      <DeudaList deudas={deudas} categorias={categorias} />
     </div>
   );
 }

@@ -9,42 +9,49 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { registrarPagoDeuda } from "./actions";
 import type { Deuda } from "@/types/deudas";
+import type { Categoria } from "@/types";
 
 function fmt(n: number, moneda: string) {
   return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: moneda,
-    maximumFractionDigits: 0,
+    style: "currency", currency: moneda, maximumFractionDigits: 0,
   }).format(n);
 }
 
 interface PagoDialogProps {
   deuda: Deuda;
+  categorias: Categoria[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function PagoDialog({ deuda, open, onOpenChange }: PagoDialogProps) {
+export function PagoDialog({ deuda, categorias = [], open, onOpenChange }: PagoDialogProps) {
   const [monto, setMonto] = useState("");
   const [notas, setNotas] = useState("");
+  const [categoriaId, setCategoriaId] = useState<string | undefined>();
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
-  // Normalizar montoPagado — puede llegar como undefined si la query es vieja
   const montoPagado = deuda.montoPagado ?? 0;
   const saldoPendiente = Math.max(0, deuda.montoTotal - montoPagado);
   const porcentajePagado = deuda.montoTotal > 0
-    ? Math.min(100, (montoPagado / deuda.montoTotal) * 100)
-    : 0;
+    ? Math.min(100, (montoPagado / deuda.montoTotal) * 100) : 0;
 
-  // Limpiar form cada vez que se abre
+  // Categorías relevantes según tipo de deuda
+  const categoriasRelevantes = categorias.filter((c) =>
+   deuda.tipo === "cobrar" ? c.tipo === "INGRESO" : c.tipo === "GASTO"
+  );
+
   useEffect(() => {
     if (open) {
       setMonto("");
       setNotas("");
+      setCategoriaId(undefined);
     }
   }, [open]);
 
@@ -69,7 +76,12 @@ export function PagoDialog({ deuda, open, onOpenChange }: PagoDialogProps) {
     }
 
     startTransition(async () => {
-      const result = await registrarPagoDeuda(deuda.id, montoNum, notas.trim() || undefined);
+      const result = await registrarPagoDeuda(
+        deuda.id,
+        montoNum,
+        notas.trim() || undefined,
+        categoriaId,
+      );
       if (result.success) {
         toast({ title: "Pago registrado ✓" });
         onOpenChange(false);
@@ -87,7 +99,7 @@ export function PagoDialog({ deuda, open, onOpenChange }: PagoDialogProps) {
         </DialogHeader>
 
         <div className="space-y-4 py-1">
-          {/* Resumen de la deuda */}
+          {/* Resumen */}
           <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground truncate mr-2">{deuda.contraparte}</span>
@@ -95,14 +107,12 @@ export function PagoDialog({ deuda, open, onOpenChange }: PagoDialogProps) {
                 <span className="font-medium truncate text-right">{deuda.descripcion}</span>
               )}
             </div>
-
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>Total</span>
               <span className="tabular-nums font-medium text-foreground">
                 {fmt(deuda.montoTotal, deuda.moneda)}
               </span>
             </div>
-
             {montoPagado > 0 && (
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>Ya pagado</span>
@@ -111,10 +121,7 @@ export function PagoDialog({ deuda, open, onOpenChange }: PagoDialogProps) {
                 </span>
               </div>
             )}
-
-            {/* Barra de progreso */}
             <Progress value={porcentajePagado} className="h-1.5" />
-
             <div className="flex justify-between text-xs font-medium">
               <span className="text-muted-foreground">Saldo pendiente</span>
               <span className="tabular-nums text-rose-600 dark:text-rose-400">
@@ -123,7 +130,7 @@ export function PagoDialog({ deuda, open, onOpenChange }: PagoDialogProps) {
             </div>
           </div>
 
-          {/* Monto a pagar */}
+          {/* Monto */}
           <div className="space-y-1.5">
             <Label htmlFor="pago-monto">Monto a registrar</Label>
             <div className="relative">
@@ -156,8 +163,7 @@ export function PagoDialog({ deuda, open, onOpenChange }: PagoDialogProps) {
           {/* Notas */}
           <div className="space-y-1.5">
             <Label htmlFor="pago-notas">
-              Notas{" "}
-              <span className="text-muted-foreground font-normal">(opcional)</span>
+              Notas <span className="text-muted-foreground font-normal">(opcional)</span>
             </Label>
             <Input
               id="pago-notas"
@@ -167,20 +173,55 @@ export function PagoDialog({ deuda, open, onOpenChange }: PagoDialogProps) {
               disabled={isPending}
             />
           </div>
+
+          {/* Categoría para registrar en finanzas */}
+          <div className="space-y-1.5">
+            <Label>
+              Registrar en finanzas{" "}
+              <span className="text-muted-foreground font-normal">(opcional)</span>
+            </Label>
+            {categoriasRelevantes.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                No tenés categorías de {deuda.tipo === "cobrar" ? "ingreso" : "gasto"}.
+                Creá una en la sección Categorías.
+              </p>
+            ) : (
+              <Select
+                value={categoriaId ?? "ninguna"}
+                onValueChange={(v) => setCategoriaId(v === "ninguna" ? undefined : v)}
+                disabled={isPending}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sin categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ninguna">Sin categoría (no registra transacción)</SelectItem>
+                  {categoriasRelevantes.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      <div className="flex items-center gap-2">
+                        <div className="size-2 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+                        {cat.nombre}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {categoriaId && monto && !isNaN(parseFloat(monto)) && (
+              <p className="text-xs text-muted-foreground">
+                Se creará una transacción de{" "}
+                <span className="font-medium">{fmt(parseFloat(monto), deuda.moneda)}</span>{" "}
+                en tu historial.
+              </p>
+            )}
+          </div>
         </div>
 
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isPending}
-          >
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
             Cancelar
           </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={isPending || !monto || saldoPendiente <= 0}
-          >
+          <Button onClick={handleSubmit} disabled={isPending || !monto || saldoPendiente <= 0}>
             {isPending ? "Registrando…" : "Registrar pago"}
           </Button>
         </DialogFooter>

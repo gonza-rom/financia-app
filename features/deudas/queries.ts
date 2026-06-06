@@ -30,14 +30,14 @@ function mapDeuda(raw: any): Deuda {
     fechaVencimiento: raw.fechaVencimiento?.toISOString(),
     fechaPago: raw.fechaPago?.toISOString(),
     cuotas: raw.cuotas?.map((c: any) => ({
-      id: c.id,
-      numero: c.numero,
-      monto: Number(c.monto),
-      fechaVencimiento: c.fechaVencimiento.toISOString(),
-      fechaPago: c.fechaPago?.toISOString(),
-      pagada: c.pagada,
-    })),
-    pagos: raw.pagos?.map(mapPago),
+        id: c.id,
+        numero: c.numero,
+        monto: Number(c.monto),
+        fechaVencimiento: c.fechaVencimiento?.toISOString(),  // ← optional chaining
+        fechaPago: c.fechaPago?.toISOString(),
+        pagada: c.pagada,
+    })) ?? [],
+    pagos: raw.pagos?.map(mapPago) ?? [],
     creadaEn: raw.creadoEn.toISOString(),
     actualizadaEn: raw.actualizadoEn.toISOString(),
   };
@@ -48,6 +48,7 @@ function mapDeuda(raw: any): Deuda {
 async function sincronizarVencidas(usuarioId: string) {
   const ahora = new Date();
 
+  // Deudas sin cuotas → directo
   await prisma.deuda.updateMany({
     where: {
       usuarioId,
@@ -58,21 +59,26 @@ async function sincronizarVencidas(usuarioId: string) {
     data: { estado: "VENCIDA" },
   });
 
-  const conCuotas = await prisma.deuda.findMany({
-    where: { usuarioId, estado: "PENDIENTE", cuotas: { some: {} } },
-    include: { cuotas: true },
+  // Deudas con cuotas → buscar IDs donde alguna cuota sin pagar está vencida
+  const idsVencidas = await prisma.deuda.findMany({
+    where: {
+      usuarioId,
+      estado: "PENDIENTE",
+      cuotas: {
+        some: {
+          pagada: false,
+          fechaVencimiento: { lt: ahora },
+        },
+      },
+    },
+    select: { id: true },   // ← solo IDs, evita el N+1
   });
 
-  for (const deuda of conCuotas) {
-    const tieneVencida = deuda.cuotas.some(
-      (c) => !c.pagada && c.fechaVencimiento < ahora
-    );
-    if (tieneVencida) {
-      await prisma.deuda.update({
-        where: { id: deuda.id },
-        data: { estado: "VENCIDA" },
-      });
-    }
+  if (idsVencidas.length > 0) {
+    await prisma.deuda.updateMany({
+      where: { id: { in: idsVencidas.map((d) => d.id) } },
+      data: { estado: "VENCIDA" },
+    });
   }
 }
 

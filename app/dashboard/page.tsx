@@ -14,6 +14,9 @@ import { CategoryPieChart } from "@/features/dashboard/category-pie-chart";
 import { RecentTransactions } from "@/features/dashboard/recent-transactions";
 import { StatsSkeleton, ChartSkeleton, TransactionListSkeleton } from "@/components/skeletons";
 import { TipoTransaccion } from "@prisma/client";
+import { getCachedResumenDeudas } from "@/features/dashboard/deudas-query";
+import { DeudasWidget } from "@/features/dashboard/deudas-widget";
+
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -22,16 +25,24 @@ async function DashboardData() {
   const anio = new Date().getFullYear(); 
   const mes = new Date().getMonth() + 1;
 
-  const [stats, graficoDatos, desgloseGastos, transRecientes] = await Promise.all([
+  const [stats, graficoDatos, desgloseGastos, transRecientes, resumenDeudas] = await Promise.all([
     getCachedDashboardStats(usuario.id),
     getCachedYearlyChart(usuario.id, anio),
     getCachedCategoryBreakdown(usuario.id, anio, mes, TipoTransaccion.GASTO),
     getTransaccionesRecientes(usuario.id, 8),
+    getCachedResumenDeudas(usuario.id),
   ]);
 
   return (
     <>
       <StatsCards stats={stats} moneda={usuario.moneda} />
+      <DeudasWidget
+        porCobrar={resumenDeudas.porCobrar}
+        porPagar={resumenDeudas.porPagar}
+        cantidadCobrar={resumenDeudas.cantidadCobrar}
+        cantidadPagar={resumenDeudas.cantidadPagar}
+        moneda={usuario.moneda}
+      />
       <div className="mt-6 grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2">
           <YearlyChart data={graficoDatos} moneda={usuario.moneda} />

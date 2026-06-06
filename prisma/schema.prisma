@@ -70,6 +70,7 @@ model Transaccion {
   cobroProyecto  CobroProyecto?
   gastoEmpresa   GastoEmpresa?
   gastoVehiculo   GastoVehiculo?
+  pagoDeuda       PagoDeuda?      // ← agregar
 
   @@index([usuarioId])
   @@index([usuarioId, fecha])
@@ -331,13 +332,16 @@ model CuotaDeuda {
 // ─── Modelo nuevo a agregar al final del schema ───────────────────────────────
 
 model PagoDeuda {
-  id          String   @id @default(cuid())
-  monto       Decimal  @db.Decimal(12, 2)
-  fecha       DateTime @default(now())
-  notas       String?
-  deudaId     String   @map("deuda_id")
-  creadoEn    DateTime @default(now()) @map("creado_en")
-  deuda       Deuda    @relation(fields: [deudaId], references: [id], onDelete: Cascade)
+  id            String       @id @default(cuid())
+  monto         Decimal      @db.Decimal(12, 2)
+  fecha         DateTime     @default(now())
+  notas         String?
+  deudaId       String       @map("deuda_id")
+  transaccionId String?      @unique @map("transaccion_id")  // ← agregar
+  creadoEn      DateTime     @default(now()) @map("creado_en")
+  actualizadoEn DateTime     @updatedAt @map("actualizado_en")  // ← agregar
+  deuda         Deuda        @relation(fields: [deudaId], references: [id], onDelete: Cascade)
+  transaccion   Transaccion? @relation(fields: [transaccionId], references: [id], onDelete: SetNull)  // ← agregar
 
   @@index([deudaId])
   @@map("pagos_deuda")

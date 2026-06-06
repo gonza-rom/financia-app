@@ -8,9 +8,11 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ContraparteCard } from "./contraparte-card";
 import { DeudaFormDialog } from "./deuda-form-dialog";
 import type { Deuda } from "@/types/deudas";
+import type { Categoria } from "@/types";
 
 interface DeudaListProps {
   deudas: Deuda[];
+  categorias: Categoria[];   // ← nuevo
 }
 
 function groupByContraparte(deudas: Deuda[]) {
@@ -19,16 +21,11 @@ function groupByContraparte(deudas: Deuda[]) {
   for (const deuda of deudas) {
     const key = deuda.empresaId ?? deuda.contraparte;
     if (!map.has(key)) {
-      map.set(key, {
-        nombre: deuda.contraparte,
-        empresaId: deuda.empresaId,
-        deudas: [],
-      });
+      map.set(key, { nombre: deuda.contraparte, empresaId: deuda.empresaId, deudas: [] });
     }
     map.get(key)!.deudas.push(deuda);
   }
 
-  // Primero las que tienen vencidas, luego por nombre
   return Array.from(map.values()).sort((a, b) => {
     const aVencida = a.deudas.some((d) => d.estado === "vencida");
     const bVencida = b.deudas.some((d) => d.estado === "vencida");
@@ -38,17 +35,11 @@ function groupByContraparte(deudas: Deuda[]) {
   });
 }
 
-export function DeudaList({ deudas }: DeudaListProps) {
+export function DeudaList({ deudas, categorias }: DeudaListProps) {
   const [open, setOpen] = useState(false);
 
-  const cobrarDeudas = useMemo(
-    () => deudas.filter((d) => d.tipo === "cobrar"),
-    [deudas]
-  );
-  const pagarDeudas = useMemo(
-    () => deudas.filter((d) => d.tipo === "pagar"),
-    [deudas]
-  );
+  const cobrarDeudas = useMemo(() => deudas.filter((d) => d.tipo === "cobrar"), [deudas]);
+  const pagarDeudas  = useMemo(() => deudas.filter((d) => d.tipo === "pagar"),  [deudas]);
 
   const cobrar = useMemo(() => groupByContraparte(cobrarDeudas), [cobrarDeudas]);
   const pagar  = useMemo(() => groupByContraparte(pagarDeudas),  [pagarDeudas]);
@@ -92,6 +83,7 @@ export function DeudaList({ deudas }: DeudaListProps) {
                 nombre={g.nombre}
                 empresaId={g.empresaId}
                 deudas={g.deudas}
+                categorias={categorias}   // ← pasar
               />
             ))
           )}
@@ -107,13 +99,14 @@ export function DeudaList({ deudas }: DeudaListProps) {
                 nombre={g.nombre}
                 empresaId={g.empresaId}
                 deudas={g.deudas}
+                categorias={categorias}   // ← pasar
               />
             ))
           )}
         </TabsContent>
       </Tabs>
 
-      <DeudaFormDialog open={open} onOpenChange={setOpen} />
+      <DeudaFormDialog open={open} onOpenChange={setOpen} categorias={categorias} />
     </>
   );
 }
