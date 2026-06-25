@@ -120,13 +120,24 @@ export async function getResumenDeudas(moneda: Moneda = "ARS"): Promise<ResumenD
   const estadosActivos: EstadoDeuda[] = ["PENDIENTE", "VENCIDA"];
 
   const [cobrar, pagar, vencidas] = await Promise.all([
+    // Deudas que te deben — incluye cuotas (sí las contamos)
     prisma.deuda.aggregate({
-      where: { usuarioId, tipo: "COBRAR", estado: { in: estadosActivos }, moneda },
-      _sum: { montoTotal: true },
+      where: {
+        usuarioId,
+        tipo: "COBRAR",
+        estado: { in: estadosActivos },
+      },
+      _sum: { montoTotal: true, montoPagado: true },
     }),
+    // Deudas que debés — SIN cuotas (las excluimos)
     prisma.deuda.aggregate({
-      where: { usuarioId, tipo: "PAGAR", estado: { in: estadosActivos }, moneda },
-      _sum: { montoTotal: true },
+      where: {
+        usuarioId,
+        tipo: "PAGAR",
+        estado: { in: estadosActivos },
+        cuotas: { none: {} },
+      },
+      _sum: { montoTotal: true, montoPagado: true },
     }),
     prisma.deuda.count({
       where: { usuarioId, estado: "VENCIDA", moneda },

@@ -85,9 +85,7 @@ function MarcarPagadaDialog({ deuda, categorias, open, onOpenChange }: MarcarPag
   const montoRestante = deuda.montoTotal - (deuda.montoPagado ?? 0);
 
   const categoriasRelevantes = categorias.filter((c) =>
-    deuda.tipo === "cobrar"
-      ? c.tipo === "INGRESO"
-      : c.tipo === "GASTO"
+    deuda.tipo === "cobrar" ? c.tipo === "INGRESO" : c.tipo === "GASTO"
   );
 
   function handleConfirmar() {
@@ -142,10 +140,7 @@ function MarcarPagadaDialog({ deuda, categorias, open, onOpenChange }: MarcarPag
                   {categoriasRelevantes.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       <div className="flex items-center gap-2">
-                        <div
-                          className="size-2 rounded-full shrink-0"
-                          style={{ backgroundColor: cat.color }}
-                        />
+                        <div className="size-2 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
                         {cat.nombre}
                       </div>
                     </SelectItem>
@@ -156,9 +151,7 @@ function MarcarPagadaDialog({ deuda, categorias, open, onOpenChange }: MarcarPag
             {categoriaId && montoRestante > 0 && (
               <p className="text-xs text-muted-foreground">
                 Se creará una transacción de{" "}
-                <span className="font-medium">
-                  {fmt(montoRestante, deuda.moneda)}
-                </span>{" "}
+                <span className="font-medium">{fmt(montoRestante, deuda.moneda)}</span>{" "}
                 en tu historial.
               </p>
             )}
@@ -178,12 +171,116 @@ function MarcarPagadaDialog({ deuda, categorias, open, onOpenChange }: MarcarPag
   );
 }
 
+// ─── Dialog para pagar cuota con categoría ────────────────────────────────────
+
+interface PagarCuotaDialogProps {
+  deuda: Deuda;
+  cuota: { id: string; numero: number; monto: number } | null;
+  categorias: Categoria[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirmar: (categoriaId?: string) => void;
+  isPending: boolean;
+}
+
+function PagarCuotaDialog({
+  deuda, cuota, categorias, open, onOpenChange, onConfirmar, isPending,
+}: PagarCuotaDialogProps) {
+  const [categoriaId, setCategoriaId] = useState<string | undefined>();
+
+  const categoriasRelevantes = categorias.filter((c) =>
+    deuda.tipo === "cobrar" ? c.tipo === "INGRESO" : c.tipo === "GASTO"
+  );
+
+  function handleConfirmar() {
+    onConfirmar(categoriaId);
+    setCategoriaId(undefined);
+  }
+
+  function handleOpenChange(v: boolean) {
+    if (!v) setCategoriaId(undefined);
+    onOpenChange(v);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Pagar cuota</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 py-1">
+          <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-1 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Cuota</span>
+              <span className="font-medium">N° {cuota?.numero}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Monto</span>
+              <span className="font-semibold">
+                {cuota ? fmt(cuota.monto, deuda.moneda) : "—"}
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>
+              Registrar en finanzas{" "}
+              <span className="text-muted-foreground font-normal">(opcional)</span>
+            </Label>
+            {categoriasRelevantes.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                Creá una categoría de {deuda.tipo === "cobrar" ? "ingreso" : "gasto"} para vincular el pago.
+              </p>
+            ) : (
+              <Select onValueChange={(v) => setCategoriaId(v === "ninguna" ? undefined : v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sin categoría (no registra transacción)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ninguna">Sin categoría</SelectItem>
+                  {categoriasRelevantes.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      <div className="flex items-center gap-2">
+                        <div className="size-2 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+                        {cat.nombre}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {categoriaId && cuota && (
+              <p className="text-xs text-muted-foreground">
+                Se creará una transacción de{" "}
+                <span className="font-medium">{fmt(cuota.monto, deuda.moneda)}</span>{" "}
+                en tu historial.
+              </p>
+            )}
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isPending}>
+            Cancelar
+          </Button>
+          <Button onClick={handleConfirmar} disabled={isPending}>
+            {isPending ? "Guardando…" : "Confirmar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Fila de una deuda individual ─────────────────────────────────────────────
 
 function DeudaRow({ deuda, categorias }: { deuda: Deuda; categorias: Categoria[] }) {
   const [cuotasOpen, setCuotasOpen] = useState(false);
   const [pagoOpen, setPagoOpen] = useState(false);
   const [marcarPagadaOpen, setMarcarPagadaOpen] = useState(false);
+  const [cuotaDialogOpen, setCuotaDialogOpen] = useState(false);
+  const [cuotaPendiente, setCuotaPendiente] = useState<{ id: string; numero: number; monto: number } | null>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -215,10 +312,18 @@ function DeudaRow({ deuda, categorias }: { deuda: Deuda; categorias: Categoria[]
     });
   }
 
-  function handleCuota(cuotaId: string) {
+  function handleCuotaClick(cuota: { id: string; numero: number; monto: number }) {
+    setCuotaPendiente(cuota);
+    setCuotaDialogOpen(true);
+  }
+
+  function handleConfirmarCuota(categoriaId?: string) {
+    if (!cuotaPendiente) return;
+    setCuotaDialogOpen(false);
     startTransition(async () => {
-      const res = await marcarCuotaPagada(cuotaId, deuda.id);
+      const res = await marcarCuotaPagada(cuotaPendiente.id, deuda.id, categoriaId);
       if (!res.success) toast({ variant: "destructive", title: res.error });
+      setCuotaPendiente(null);
     });
   }
 
@@ -361,7 +466,11 @@ function DeudaRow({ deuda, categorias }: { deuda: Deuda; categorias: Categoria[]
                 key={cuota.id}
                 type="button"
                 disabled={cuota.pagada || isPending}
-                onClick={() => !cuota.pagada && handleCuota(cuota.id)}
+                onClick={() => !cuota.pagada && handleCuotaClick({
+                  id: cuota.id,
+                  numero: cuota.numero,
+                  monto: cuota.monto,
+                })}
                 className={cn(
                   "w-full flex items-center justify-between rounded px-2 py-1.5 text-sm transition-colors",
                   cuota.pagada ? "cursor-default" : "hover:bg-muted cursor-pointer"
@@ -407,6 +516,16 @@ function DeudaRow({ deuda, categorias }: { deuda: Deuda; categorias: Categoria[]
         categorias={categorias}
         open={marcarPagadaOpen}
         onOpenChange={setMarcarPagadaOpen}
+      />
+
+      <PagarCuotaDialog
+        deuda={deuda}
+        cuota={cuotaPendiente}
+        categorias={categorias}
+        open={cuotaDialogOpen}
+        onOpenChange={setCuotaDialogOpen}
+        onConfirmar={handleConfirmarCuota}
+        isPending={isPending}
       />
     </>
   );

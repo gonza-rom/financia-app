@@ -19,6 +19,7 @@ type CrearDeudaInput = {
   tieneCuotas: boolean;
   cantidadCuotas?: number | null;
   categoriaId?: string; // ← nuevo
+  fechaInicioCuotas?: Date | null;
 };
 
 export type ResultadoAccion<T = void> =
@@ -33,14 +34,23 @@ function toNumber(val: unknown): number {
   return isNaN(n) ? 0 : n;
 }
 
-function generarCuotas(montoTotal: number, cantidad: number) {
+function generarCuotas(montoTotal: number, cantidad: number, fechaInicio: Date) {
   const monto = Math.round((montoTotal / cantidad) * 100) / 100;
-  const hoy = new Date();
-  return Array.from({ length: cantidad }, (_, i) => ({
-    numero: i + 1,
-    monto,
-    fechaVencimiento: new Date(hoy.getFullYear(), hoy.getMonth() + i + 1, hoy.getDate()),
-  }));
+  const diaBase = fechaInicio.getDate();
+
+  return Array.from({ length: cantidad }, (_, i) => {
+    const anio = fechaInicio.getFullYear();
+    const mes = fechaInicio.getMonth() + i; // sin +1, empieza en el mes elegido
+
+    const ultimoDia = new Date(anio, mes + 1, 0).getDate();
+    const dia = Math.min(diaBase, ultimoDia);
+
+    return {
+      numero: i + 1,
+      monto,
+      fechaVencimiento: new Date(anio, mes, dia),
+    };
+  });
 }
 
 // ─── Crear deuda ──────────────────────────────────────────────────────────────
@@ -53,46 +63,46 @@ export async function crearDeuda(
 
     const cuotas =
       input.tieneCuotas && input.cantidadCuotas && input.cantidadCuotas >= 2
-        ? generarCuotas(input.montoTotal, input.cantidadCuotas)
+        ? generarCuotas(input.montoTotal, input.cantidadCuotas, input.fechaInicioCuotas ?? new Date())
         : undefined;
 
-    await prisma.$transaction(async (tx) => {
-      const deuda = await tx.deuda.create({
-        data: {
-          tipo: input.tipo,
-          contraparte: input.contraparte.trim(),
-          descripcion: input.descripcion?.trim() || null,
-          moneda: input.moneda,
-          montoTotal: input.montoTotal,
-          montoPagado: 0,
-          fechaVencimiento: input.fechaVencimiento ?? null,
-          usuarioId: usuario.id,
-          empresaId: input.empresaId,
-          cuotas: cuotas ? { create: cuotas } : undefined,
-        },
-      });
-
-      if (input.categoriaId) {
-        const descripcion = input.tipo === "COBRAR"
-          ? `Préstamo a ${input.contraparte.trim()}`
-          : `Deuda con ${input.contraparte.trim()}`;
-
-        await tx.transaccion.create({
+      await prisma.$transaction(async (tx) => {
+        const deuda = await tx.deuda.create({
           data: {
-            monto: input.montoTotal,
-            descripcion,
-            // COBRAR = prestás = gasto; PAGAR = te prestan = ingreso
-            tipo: input.tipo === "COBRAR" ? "GASTO" : "INGRESO",
-            fecha: new Date(),
-            esRecurrente: false,
+            tipo: input.tipo,
+            contraparte: input.contraparte.trim(),
+            descripcion: input.descripcion?.trim() || null,
+            moneda: input.moneda,
+            montoTotal: input.montoTotal,
+            montoPagado: 0,
+            fechaVencimiento: input.fechaVencimiento ?? null,
             usuarioId: usuario.id,
-            categoriaId: input.categoriaId,
+            empresaId: input.empresaId,
+            cuotas: cuotas ? { create: cuotas } : undefined,
           },
         });
-      }
 
-      return deuda;
-    });
+        // Solo crear transacción si tiene categoría Y no tiene cuotas
+        if (input.categoriaId && !input.tieneCuotas) {
+          const descripcion = input.tipo === "COBRAR"
+            ? `Préstamo a ${input.contraparte.trim()}`
+            : `Deuda con ${input.contraparte.trim()}`;
+
+          await tx.transaccion.create({
+            data: {
+              monto: input.montoTotal,
+              descripcion,
+              tipo: input.tipo === "COBRAR" ? "GASTO" : "INGRESO",
+              fecha: new Date(),
+              esRecurrente: false,
+              usuarioId: usuario.id,
+              categoriaId: input.categoriaId,
+            },
+          });
+        }
+
+        return deuda;
+      });
 
     revalidatePath("/deudas");
     revalidatePath("/transacciones");
@@ -354,7 +364,8 @@ export async function marcarDeudaVencida(id: string): Promise<ResultadoAccion> {
 
 export async function marcarCuotaPagada(
   cuotaId: string,
-  deudaId: string
+  deudaId: string,
+  categoriaId?: string,  // ← agregar
 ): Promise<ResultadoAccion> {
   try {
     const usuario = await getCurrentUser();
@@ -386,9 +397,24 @@ export async function marcarCuotaPagada(
           ...(todasPagas && { estado: "PAGADA", fechaPago: new Date() }),
         },
       }),
+      ...(categoriaId ? [prisma.transaccion.create({
+        data: {
+          monto: toNumber(cuota.monto),
+          descripcion: deuda.tipo === "COBRAR"
+            ? `Cuota ${cuota.numero} cobrada — ${deuda.contraparte}`
+            : `Cuota ${cuota.numero} pagada — ${deuda.contraparte}`,
+          tipo: deuda.tipo === "COBRAR" ? "INGRESO" : "GASTO",
+          fecha: new Date(),
+          esRecurrente: false,
+          usuarioId: usuario.id,
+          categoriaId,
+        },
+      })] : []),
     ]);
 
     revalidatePath("/deudas");
+    revalidatePath("/dashboard");
+    revalidatePath("/transacciones");
     return { success: true, data: undefined };
   } catch (error) {
     console.error("[marcarCuotaPagada]", error);

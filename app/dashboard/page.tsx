@@ -41,7 +41,11 @@ async function DashboardData() {
         porPagar={resumenDeudas.porPagar}
         cantidadCobrar={resumenDeudas.cantidadCobrar}
         cantidadPagar={resumenDeudas.cantidadPagar}
-        moneda={usuario.moneda}
+        cuotasCobrar={resumenDeudas.cuotasCobrar}
+        cuotasPagar={resumenDeudas.cuotasPagar}
+        cantidadCuotasCobrar={resumenDeudas.cantidadCuotasCobrar}
+        cantidadCuotasPagar={resumenDeudas.cantidadCuotasPagar}
+        moneda={usuario.moneda}   // ← was bare `moneda`
       />
       <div className="mt-6 grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2">

@@ -30,6 +30,7 @@ interface FormValues {
   descripcion: string;
   fechaVencimiento: string;
   categoriaId: string | undefined;
+  fechaInicioCuotas: string; // "YYYY-MM-DD" en lugar de "YYYY-MM"
 }
 
 const MONEDAS: { value: Moneda; label: string }[] = [
@@ -48,6 +49,7 @@ const INITIAL: FormValues = {
   descripcion: "",
   fechaVencimiento: "",
   categoriaId: undefined,
+  fechaInicioCuotas: "", // mes actual por defecto
 };
 
 interface DeudaFormDialogProps {
@@ -109,6 +111,9 @@ export function DeudaFormDialog({
           ? new Date(form.fechaVencimiento)
           : null,
         categoriaId: form.categoriaId,
+        fechaInicioCuotas: form.tieneCuotas && form.fechaInicioCuotas
+          ? new Date(form.fechaInicioCuotas)
+          : null,
       });
 
       if (result.success) {
@@ -237,6 +242,15 @@ export function DeudaFormDialog({
                 onChange={(e) => set("cantidadCuotas", Number(e.target.value))}
                 disabled={isPending}
               />
+              <div className="space-y-1.5">
+                <Label>Fecha de la primera cuota</Label>
+                <Input
+                  type="date"
+                  value={form.fechaInicioCuotas}
+                  onChange={(e) => set("fechaInicioCuotas", e.target.value)}
+                  disabled={isPending}
+                />
+              </div>
             </div>
           ) : (
             <div className="space-y-1.5">

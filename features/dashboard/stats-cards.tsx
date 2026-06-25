@@ -1,7 +1,7 @@
 // features/dashboard/stats-cards.tsx
 import type { EstadisticasDashboard } from "@/types";
 import { formatCurrency } from "@/lib/utils";
-import { TrendingUp, TrendingDown, Wallet, PiggyBank } from "lucide-react";
+import { TrendingUp, TrendingDown, BarChart3, PiggyBank } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface StatsCardsProps {
@@ -12,40 +12,50 @@ interface StatsCardsProps {
 export function StatsCards({ stats, moneda }: StatsCardsProps) {
   const tarjetas = [
     {
-      label: "Balance Total",
-      valor: formatCurrency(stats.balanceTotal, moneda),
-      icono: Wallet,
+      label: "Patrimonio Neto",
+      sublabel: "Flujo histórico + deudas",
+      valor: formatCurrency(stats.patrimonioNeto, moneda),
+      icono: BarChart3,
       iconoClase: "bg-primary/10 text-primary",
       cambio: null,
-      etiquetaCambio: "Desde siempre",
-      positivo: stats.balanceTotal >= 0,
+      etiquetaCambio: null,
+      positivo: stats.patrimonioNeto >= 0,
+      detalle: stats.porCobrarPendiente > 0 || stats.porPagarPendiente > 0
+        ? `+${formatCurrency(stats.porCobrarPendiente, moneda)} cobrar · -${formatCurrency(stats.porPagarPendiente, moneda)} pagar`
+        : `Flujo: ${formatCurrency(stats.balanceTotal, moneda)}`,
     },
     {
       label: "Ingresos del Mes",
+      sublabel: null,
       valor: formatCurrency(stats.ingresoMensual, moneda),
       icono: TrendingUp,
       iconoClase: "bg-income/10 text-income",
       cambio: stats.cambioIngreso,
       etiquetaCambio: "vs mes anterior",
       positivo: true,
+      detalle: null,
     },
     {
       label: "Gastos del Mes",
+      sublabel: null,
       valor: formatCurrency(stats.gastoMensual, moneda),
       icono: TrendingDown,
       iconoClase: "bg-expense/10 text-expense",
       cambio: stats.cambioGasto,
       etiquetaCambio: "vs mes anterior",
       positivo: stats.cambioGasto <= 0,
+      detalle: null,
     },
     {
-      label: "Ahorro",
+      label: "Ahorro del Mes",
+      sublabel: null,
       valor: formatCurrency(stats.ahorroMensual, moneda),
       icono: PiggyBank,
       iconoClase: "bg-violet-500/10 text-violet-400",
       cambio: stats.tasaAhorro,
       etiquetaCambio: "tasa de ahorro",
       positivo: stats.ahorroMensual >= 0,
+      detalle: null,
     },
   ];
 
@@ -56,20 +66,25 @@ export function StatsCards({ stats, moneda }: StatsCardsProps) {
         return (
           <div key={tarjeta.label} className="rounded-xl border border-border bg-card p-5 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground font-medium">{tarjeta.label}</span>
-              <div className={cn("size-8 rounded-md flex items-center justify-center", tarjeta.iconoClase)}>
+              <div>
+                <span className="text-sm text-muted-foreground font-medium">{tarjeta.label}</span>
+                {tarjeta.sublabel && (
+                  <p className="text-[10px] text-muted-foreground/70">{tarjeta.sublabel}</p>
+                )}
+              </div>
+              <div className={cn("size-8 rounded-md flex items-center justify-center shrink-0", tarjeta.iconoClase)}>
                 <Icono className="size-4" />
               </div>
             </div>
-            <div>
-              <p className={cn(
-                "text-2xl font-semibold tracking-tight",
-                tarjeta.label === "Balance Total" && !tarjeta.positivo && "text-expense"
-              )}>
-                {tarjeta.valor}
-              </p>
-            </div>
-            {tarjeta.cambio !== null ? (
+
+            <p className={cn(
+              "text-2xl font-semibold tracking-tight",
+              !tarjeta.positivo && "text-expense"
+            )}>
+              {tarjeta.valor}
+            </p>
+
+            {tarjeta.cambio !== null && tarjeta.etiquetaCambio ? (
               <p className="text-xs text-muted-foreground">
                 <span className={cn("font-medium", tarjeta.positivo ? "text-income" : "text-expense")}>
                   {tarjeta.etiquetaCambio === "tasa de ahorro"
@@ -78,9 +93,9 @@ export function StatsCards({ stats, moneda }: StatsCardsProps) {
                 </span>{" "}
                 {tarjeta.etiquetaCambio}
               </p>
-            ) : (
-              <p className="text-xs text-muted-foreground">{tarjeta.etiquetaCambio}</p>
-            )}
+            ) : tarjeta.detalle ? (
+              <p className="text-[10px] text-muted-foreground truncate">{tarjeta.detalle}</p>
+            ) : null}
           </div>
         );
       })}

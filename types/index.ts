@@ -26,6 +26,9 @@ export type CategoriaConEstadisticas = Categoria & {
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 export interface EstadisticasDashboard {
   balanceTotal: number;
+  patrimonioNeto: number;
+  porCobrarPendiente: number; 
+  porPagarPendiente: number;
   ingresoMensual: number;
   gastoMensual: number;
   ahorroMensual: number;

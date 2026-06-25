@@ -11,7 +11,7 @@ export const getCachedDashboardStats = unstable_cache(
     const { from: desdeActual, to: hastaActual } = getMonthRange(ahora);
     const { from: desdeAnterior, to: hastaAnterior } = getPreviousMonthRange(ahora);
 
-    const [mesActual, mesAnterior, todoElTiempo] = await Promise.all([
+    const [mesActual, mesAnterior, todoElTiempo, deudaCobrar, deudaPagar] = await Promise.all([
       prisma.transaccion.groupBy({
         by: ["tipo"],
         where: { usuarioId, fecha: { gte: desdeActual, lte: hastaActual } },
@@ -27,6 +27,25 @@ export const getCachedDashboardStats = unstable_cache(
         where: { usuarioId },
         _sum: { monto: true },
       }),
+      // Deudas que te deben — INCLUYE cuotas (sí las contamos)
+      prisma.deuda.aggregate({
+        where: {
+          usuarioId,
+          tipo: "COBRAR",
+          estado: { in: ["PENDIENTE", "VENCIDA"] },
+        },
+        _sum: { montoTotal: true, montoPagado: true },
+      }),
+      // Deudas que debés — SIN cuotas (las excluimos)
+      prisma.deuda.aggregate({
+        where: {
+          usuarioId,
+          tipo: "PAGAR",
+          estado: { in: ["PENDIENTE", "VENCIDA"] },
+          cuotas: { none: {} },
+        },
+        _sum: { montoTotal: true, montoPagado: true },
+      }),
     ]);
 
     const getMonto = (
@@ -34,18 +53,29 @@ export const getCachedDashboardStats = unstable_cache(
       tipo: TipoTransaccion
     ) => Number(data.find((r) => r.tipo === tipo)?._sum.monto ?? 0);
 
-    const ingresoMensual = getMonto(mesActual, TipoTransaccion.INGRESO);
-    const gastoMensual = getMonto(mesActual, TipoTransaccion.GASTO);
+    const ingresoMensual  = getMonto(mesActual, TipoTransaccion.INGRESO);
+    const gastoMensual    = getMonto(mesActual, TipoTransaccion.GASTO);
     const ingresoAnterior = getMonto(mesAnterior, TipoTransaccion.INGRESO);
-    const gastoAnterior = getMonto(mesAnterior, TipoTransaccion.GASTO);
-    const ingresoTotal = getMonto(todoElTiempo, TipoTransaccion.INGRESO);
-    const gastoTotal = getMonto(todoElTiempo, TipoTransaccion.GASTO);
+    const gastoAnterior   = getMonto(mesAnterior, TipoTransaccion.GASTO);
+    const ingresoTotal    = getMonto(todoElTiempo, TipoTransaccion.INGRESO);
+    const gastoTotal      = getMonto(todoElTiempo, TipoTransaccion.GASTO);
 
+    const porCobrarPendiente =
+      Number(deudaCobrar._sum.montoTotal ?? 0) - Number(deudaCobrar._sum.montoPagado ?? 0);
+    const porPagarPendiente =
+      Number(deudaPagar._sum.montoTotal ?? 0) - Number(deudaPagar._sum.montoPagado ?? 0);
+
+    const flujoNetoHistorico = ingresoTotal - gastoTotal;
     const ahorroMensual = ingresoMensual - gastoMensual;
     const tasaAhorro = ingresoMensual > 0 ? (ahorroMensual / ingresoMensual) * 100 : 0;
 
+    const patrimonioNeto = flujoNetoHistorico + porCobrarPendiente - porPagarPendiente;
+
     return {
-      balanceTotal: ingresoTotal - gastoTotal,
+      balanceTotal: flujoNetoHistorico,
+      patrimonioNeto,
+      porCobrarPendiente,
+      porPagarPendiente,
       ingresoMensual,
       gastoMensual,
       ahorroMensual,
@@ -55,6 +85,5 @@ export const getCachedDashboardStats = unstable_cache(
     };
   },
   ["dashboard-stats"],
-  // Revalida cada 30 segundos Y cuando se invalida el tag "transacciones"
-  { revalidate: 30, tags: ["transacciones", "dashboard-stats"] }
+  { revalidate: 30, tags: ["transacciones", "dashboard-stats", "deudas"] }
 );
