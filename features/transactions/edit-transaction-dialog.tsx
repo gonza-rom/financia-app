@@ -1,28 +1,30 @@
-// src/features/transactions/edit-transaction-dialog.tsx
 "use client";
 
 import { useForm } from "react-hook-form";
 import { useTransition } from "react";
-import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import type { Categoria, FormularioTransaccion, TransaccionConCategoria } from "@/types";
 import { updateTransactionAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
 import { parseFechaLocal, formatFechaInput } from "@/lib/utils-fecha";
 
+type CuentaSimple = {
+  id: string;
+  nombre: string;
+  tipo: string;
+  color: string;
+};
+
 interface EditTransactionDialogProps {
   transaccion: TransaccionConCategoria;
   categorias: Categoria[];
+  cuentas: CuentaSimple[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -30,6 +32,7 @@ interface EditTransactionDialogProps {
 export function EditTransactionDialog({
   transaccion,
   categorias,
+  cuentas,
   open,
   onOpenChange,
 }: EditTransactionDialogProps) {
@@ -45,6 +48,7 @@ export function EditTransactionDialog({
       categoriaId: transaccion.categoriaId,
       notas: transaccion.notas ?? "",
       esRecurrente: transaccion.esRecurrente,
+      cuentaId: transaccion.cuentaId ?? undefined,
     },
   });
 
@@ -70,6 +74,7 @@ export function EditTransactionDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-2">
+          {/* Monto */}
           <div className="space-y-2">
             <Label htmlFor="edit-monto">Monto</Label>
             <Input
@@ -81,14 +86,13 @@ export function EditTransactionDialog({
             />
           </div>
 
+          {/* Descripción */}
           <div className="space-y-2">
             <Label htmlFor="edit-descripcion">Descripción</Label>
-            <Input
-              id="edit-descripcion"
-              {...register("descripcion", { required: true })}
-            />
+            <Input id="edit-descripcion" {...register("descripcion", { required: true })} />
           </div>
 
+          {/* Categoría */}
           <div className="space-y-2">
             <Label>Categoría</Label>
             <Select
@@ -111,6 +115,33 @@ export function EditTransactionDialog({
             </Select>
           </div>
 
+          {/* Cuenta */}
+          <div className="space-y-2">
+            <Label>
+              Cuenta <span className="text-muted-foreground font-normal">(opcional)</span>
+            </Label>
+            <Select
+              defaultValue={transaccion.cuentaId ?? "ninguna"}
+              onValueChange={(v) => setValue("cuentaId", v === "ninguna" ? undefined : v)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sin cuenta específica" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ninguna">Sin cuenta</SelectItem>
+                {cuentas.map((cuenta) => (
+                  <SelectItem key={cuenta.id} value={cuenta.id}>
+                    <div className="flex items-center gap-2">
+                      <div className="size-2 rounded-full shrink-0" style={{ backgroundColor: cuenta.color }} />
+                      {cuenta.nombre}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Fecha */}
           <div className="space-y-2">
             <Label htmlFor="edit-fecha">Fecha</Label>
             <Input
@@ -121,18 +152,14 @@ export function EditTransactionDialog({
             />
           </div>
 
+          {/* Notas */}
           <div className="space-y-2">
-            <Label htmlFor="edit-notas">Notas</Label>
+            <Label htmlFor="edit-notas">Notas <span className="text-muted-foreground font-normal">(opcional)</span></Label>
             <Input id="edit-notas" placeholder="Alguna nota…" {...register("notas")} />
           </div>
 
           <div className="flex gap-3 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="flex-1"
-              onClick={() => onOpenChange(false)}
-            >
+            <Button type="button" variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
             <Button type="submit" className="flex-1" disabled={isPending}>

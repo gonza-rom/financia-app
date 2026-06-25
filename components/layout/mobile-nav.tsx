@@ -10,7 +10,8 @@ import {
   Car,
   Settings,
   Tag,
-  Building2
+  Building2,
+  Wallet
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
   { href: "/vehiculos",    label: "Vehículos",     icon: Car },
   { href: "/empresas",     label: "Empresas",      icon: Building2 },
   { href: "/deudas",     label: "Deudas",      icon: Landmark  },
+  { href: "/cuentas", label: "Cuentas", icon: Wallet },
   { href: "/settings",     label: "Configuración", icon: Settings },
 ];
 

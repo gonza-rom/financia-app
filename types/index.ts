@@ -27,6 +27,7 @@ export type CategoriaConEstadisticas = Categoria & {
 export interface EstadisticasDashboard {
   balanceTotal: number;
   patrimonioNeto: number;
+  saldoTotalCuentas: number;   // ← NUEVO — suma de saldos de todas las cuentas activas
   porCobrarPendiente: number; 
   porPagarPendiente: number;
   ingresoMensual: number;
@@ -63,6 +64,7 @@ export interface FormularioTransaccion {
   categoriaId: string;
   esRecurrente: boolean;
   notas?: string;
+  cuentaId?: string;
 }
 
 export interface FormularioCategoria {

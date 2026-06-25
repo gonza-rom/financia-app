@@ -5,23 +5,28 @@ import type { Categoria, TransaccionConCategoria } from "@/types";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { TipoTransaccion } from "@prisma/client";
 import { cn } from "@/lib/utils";
-import { Pencil } from "lucide-react";
+import { Pencil, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DeleteTransactionButton } from "./delete-transaction-button";
 import { EditTransactionDialog } from "./edit-transaction-dialog";
 import { useState } from "react";
 import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
+  Pagination, PaginationContent, PaginationItem,
+  PaginationNext, PaginationPrevious,
 } from "@/components/ui/pagination";
 import { useSearchParams } from "next/navigation";
+
+type CuentaSimple = {
+  id: string;
+  nombre: string;
+  tipo: string;
+  color: string;
+};
 
 interface TransactionListProps {
   transacciones: TransaccionConCategoria[];
   categorias: Categoria[];
+  cuentas: CuentaSimple[];
   moneda: string;
   total: number;
   pagina: number;
@@ -31,6 +36,7 @@ interface TransactionListProps {
 export function TransactionList({
   transacciones,
   categorias,
+  cuentas,
   moneda,
   total,
   pagina,
@@ -67,6 +73,7 @@ export function TransactionList({
         <div className="divide-y divide-border">
           {transacciones.map((tx) => {
             const esIngreso = tx.tipo === TipoTransaccion.INGRESO;
+            const cuenta = cuentas.find((c) => c.id === tx.cuentaId);
             return (
               <div key={tx.id} className="flex items-center gap-4 px-5 py-4 group">
                 <div
@@ -82,6 +89,12 @@ export function TransactionList({
                   <p className="text-sm font-medium truncate">{tx.descripcion}</p>
                   <p className="text-xs text-muted-foreground">
                     {tx.categoria.nombre} · {formatDate(tx.fecha)}
+                    {cuenta && (
+                      <span className="ml-1.5 inline-flex items-center gap-1">
+                        <Wallet className="size-3 inline" style={{ color: cuenta.color }} />
+                        {cuenta.nombre}
+                      </span>
+                    )}
                     {tx.esRecurrente && (
                       <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 bg-primary/10 text-primary rounded text-[10px] font-medium">
                         Recurrente
@@ -89,22 +102,15 @@ export function TransactionList({
                     )}
                   </p>
                 </div>
-                <span
-                  className={cn(
-                    "text-sm font-semibold tabular-nums shrink-0",
-                    esIngreso ? "text-income" : "text-expense"
-                  )}
-                >
+                <span className={cn(
+                  "text-sm font-semibold tabular-nums shrink-0",
+                  esIngreso ? "text-income" : "text-expense"
+                )}>
                   {esIngreso ? "+" : "-"}
                   {formatCurrency(Number(tx.monto), moneda)}
                 </span>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-7"
-                    onClick={() => setEditandoId(tx.id)}
-                  >
+                  <Button variant="ghost" size="icon" className="size-7" onClick={() => setEditandoId(tx.id)}>
                     <Pencil className="size-3.5" />
                   </Button>
                   <DeleteTransactionButton id={tx.id} />
@@ -136,6 +142,7 @@ export function TransactionList({
         <EditTransactionDialog
           transaccion={editandoTx}
           categorias={categorias}
+          cuentas={cuentas}
           open={!!editandoId}
           onOpenChange={handleEditOpenChange}
         />

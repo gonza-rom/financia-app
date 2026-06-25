@@ -1,4 +1,3 @@
-// features/transactions/add-transaction-button.tsx
 "use client";
 
 import { useState } from "react";
@@ -7,11 +6,19 @@ import { Button } from "@/components/ui/button";
 import type { Categoria } from "@/types";
 import { TransactionDialog } from "./transaction-dialog";
 
+type CuentaSimple = {
+  id: string;
+  nombre: string;
+  tipo: string;
+  color: string;
+};
+
 interface AddTransactionButtonProps {
   categorias: Categoria[];
+  cuentas: CuentaSimple[];
 }
 
-export function AddTransactionButton({ categorias }: AddTransactionButtonProps) {
+export function AddTransactionButton({ categorias, cuentas }: AddTransactionButtonProps) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -19,7 +26,7 @@ export function AddTransactionButton({ categorias }: AddTransactionButtonProps) 
         <Plus className="size-4" />
         Nueva Transacción
       </Button>
-      <TransactionDialog categorias={categorias} open={open} onOpenChange={setOpen} />
+      <TransactionDialog categorias={categorias} cuentas={cuentas} open={open} onOpenChange={setOpen} />
     </>
   );
 }

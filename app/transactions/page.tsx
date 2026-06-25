@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
 import { getTransacciones } from "@/features/transactions/queries";
 import { getCategorias } from "@/features/categories/queries";
+import { getCuentas } from "@/features/cuentas/queries";
 import { TransactionList } from "@/features/transactions/transaction-list";
 import { TransactionFiltersBar } from "@/features/transactions/transaction-filters";
 import { AddTransactionButton } from "@/features/transactions/add-transaction-button";
@@ -33,7 +34,7 @@ async function TransaccionesData({
   const pagina = Number(searchParams.pagina ?? "1");
   const tipo = searchParams.tipo as TipoTransaccion | undefined;
 
-  const [{ data: transacciones, total, totalPaginas }, categorias] = await Promise.all([
+  const [{ data: transacciones, total, totalPaginas }, categorias, cuentas] = await Promise.all([
     getTransacciones(usuarioId, {
       pagina,
       limite: 20,
@@ -42,12 +43,14 @@ async function TransaccionesData({
       busqueda: searchParams.busqueda,
     }),
     getCategorias(usuarioId),
+    getCuentas(usuarioId),
   ]);
 
   return (
     <TransactionList
       transacciones={transacciones}
       categorias={categorias}
+      cuentas={cuentas}
       moneda={moneda}
       total={total}
       pagina={pagina}
@@ -58,7 +61,11 @@ async function TransaccionesData({
 
 export default async function TransaccionesPage({ searchParams }: PageProps) {
   const [usuario, params] = await Promise.all([getCurrentUser(), searchParams]);
-  const categorias = await getCategorias(usuario.id);
+
+  const [categorias, cuentas] = await Promise.all([
+    getCategorias(usuario.id),
+    getCuentas(usuario.id),
+  ]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -67,7 +74,7 @@ export default async function TransaccionesPage({ searchParams }: PageProps) {
           <h1 className="text-2xl font-semibold tracking-tight">Transacciones</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Tus ingresos y gastos</p>
         </div>
-        <AddTransactionButton categorias={categorias} />
+        <AddTransactionButton categorias={categorias} cuentas={cuentas} />
       </div>
 
       <TransactionFiltersBar categorias={categorias} />

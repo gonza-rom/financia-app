@@ -31,6 +31,7 @@ model Usuario {
   vehiculos     Vehiculo[]
   empresas  Empresa[]
   deudas        Deuda[] 
+  cuentas       Cuenta[]
 
   @@map("usuarios")
 }
@@ -71,6 +72,8 @@ model Transaccion {
   gastoEmpresa   GastoEmpresa?
   gastoVehiculo   GastoVehiculo?
   pagoDeuda       PagoDeuda?      // ← agregar
+  cuentaId        String?       @map("cuenta_id")
+  cuenta          Cuenta?       @relation(fields: [cuentaId], references: [id], onDelete: SetNull)
 
   @@index([usuarioId])
   @@index([usuarioId, fecha])
@@ -345,4 +348,30 @@ model PagoDeuda {
 
   @@index([deudaId])
   @@map("pagos_deuda")
+}
+
+enum TipoCuenta {
+  EFECTIVO
+  BANCO
+  BILLETERA_DIGITAL
+  INVERSION
+  OTRO
+}
+
+model Cuenta {
+  id            String     @id @default(cuid())
+  nombre        String     // "Mercado Pago", "Efectivo", "Banco Galicia"
+  tipo          TipoCuenta
+  saldo         Decimal    @default(0) @db.Decimal(12, 2)
+  color         String     @default("#3b82f6")
+  icono         String     @default("wallet")
+  activo        Boolean    @default(true)
+  usuarioId     String     @map("usuario_id")
+  creadoEn      DateTime   @default(now()) @map("creado_en")
+  actualizadoEn DateTime   @updatedAt @map("actualizado_en")
+  usuario       Usuario    @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  transacciones Transaccion[]
+
+  @@index([usuarioId])
+  @@map("cuentas")
 }

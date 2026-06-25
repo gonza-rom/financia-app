@@ -1,4 +1,3 @@
-// features/transactions/transaction-dialog.tsx
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -15,13 +14,21 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { parseFechaLocal, formatFechaInput } from "@/lib/utils-fecha";
 
+type CuentaSimple = {
+  id: string;
+  nombre: string;
+  tipo: string;
+  color: string;
+};
+
 interface TransactionDialogProps {
   categorias: Categoria[];
+  cuentas: CuentaSimple[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function TransactionDialog({ categorias, open, onOpenChange }: TransactionDialogProps) {
+export function TransactionDialog({ categorias, cuentas, open, onOpenChange }: TransactionDialogProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -30,6 +37,7 @@ export function TransactionDialog({ categorias, open, onOpenChange }: Transactio
       tipo: TipoTransaccion.GASTO,
       fecha: new Date(),
       esRecurrente: false,
+      cuentaId: undefined,
     },
   });
 
@@ -56,6 +64,7 @@ export function TransactionDialog({ categorias, open, onOpenChange }: Transactio
           <DialogTitle>Nueva Transacción</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-2">
+          {/* Tipo */}
           <div className="flex rounded-lg border border-border overflow-hidden">
             {[TipoTransaccion.GASTO, TipoTransaccion.INGRESO].map((t) => (
               <button key={t} type="button" onClick={() => setValue("tipo", t)}
@@ -69,6 +78,7 @@ export function TransactionDialog({ categorias, open, onOpenChange }: Transactio
             ))}
           </div>
 
+          {/* Monto */}
           <div className="space-y-2">
             <Label htmlFor="monto">Monto</Label>
             <Input id="monto" type="number" step="0.01" min="0.01" placeholder="0.00"
@@ -76,6 +86,7 @@ export function TransactionDialog({ categorias, open, onOpenChange }: Transactio
               className={errors.monto ? "border-destructive" : ""} />
           </div>
 
+          {/* Descripción */}
           <div className="space-y-2">
             <Label htmlFor="descripcion">Descripción</Label>
             <Input id="descripcion" placeholder="¿Para qué fue?"
@@ -83,6 +94,7 @@ export function TransactionDialog({ categorias, open, onOpenChange }: Transactio
               className={errors.descripcion ? "border-destructive" : ""} />
           </div>
 
+          {/* Categoría */}
           <div className="space-y-2">
             <Label>Categoría</Label>
             <Select onValueChange={(v) => setValue("categoriaId", v)}>
@@ -106,21 +118,43 @@ export function TransactionDialog({ categorias, open, onOpenChange }: Transactio
             </Select>
           </div>
 
+          {/* Cuenta */}
+          <div className="space-y-2">
+            <Label>
+              Cuenta <span className="text-muted-foreground font-normal">(opcional)</span>
+            </Label>
+            <Select onValueChange={(v) => setValue("cuentaId", v === "ninguna" ? undefined : v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sin cuenta específica" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ninguna">Sin cuenta</SelectItem>
+                {cuentas.map((cuenta) => (
+                  <SelectItem key={cuenta.id} value={cuenta.id}>
+                    <div className="flex items-center gap-2">
+                      <div className="size-2 rounded-full shrink-0" style={{ backgroundColor: cuenta.color }} />
+                      {cuenta.nombre}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Fecha */}
           <div className="space-y-2">
             <Label htmlFor="fecha">Fecha</Label>
             <Input
               id="fecha"
               type="date"
               defaultValue={formatFechaInput(new Date())}
-              {...register("fecha", {
-                required: true,
-                setValueAs: parseFechaLocal,
-              })}
+              {...register("fecha", { required: true, setValueAs: parseFechaLocal })}
             />
           </div>
 
+          {/* Notas */}
           <div className="space-y-2">
-            <Label htmlFor="notas">Notas (opcional)</Label>
+            <Label htmlFor="notas">Notas <span className="text-muted-foreground font-normal">(opcional)</span></Label>
             <Input id="notas" placeholder="Alguna nota…" {...register("notas")} />
           </div>
 
