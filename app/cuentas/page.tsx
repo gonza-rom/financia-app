@@ -2,7 +2,6 @@
 import { getCurrentUser } from "@/lib/auth";
 import { getCachedCuentas, getCachedSaldoTotalCuentas } from "@/features/cuentas/queries";
 import { CuentaCard } from "@/features/cuentas/cuenta-card";
-import { NuevaCuentaDialog } from "@/features/cuentas/nueva-cuenta-dialog";
 import { NuevaCuentaButton } from "@/features/cuentas/nueva-cuenta-button";
 import { formatCurrency } from "@/lib/utils";
 import { Wallet } from "lucide-react";
@@ -20,7 +19,6 @@ export default async function CuentasPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Cuentas</h1>
@@ -31,7 +29,6 @@ export default async function CuentasPage() {
         <NuevaCuentaButton />
       </div>
 
-      {/* Saldo total */}
       <div className="rounded-xl border border-border bg-card p-5 flex items-center gap-4">
         <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
           <Wallet className="size-5 text-primary" />
@@ -44,7 +41,6 @@ export default async function CuentasPage() {
         </div>
       </div>
 
-      {/* Lista de cuentas */}
       {cuentas.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-card/50 py-16 text-center">
           <Wallet className="size-8 text-muted-foreground mx-auto mb-3" />

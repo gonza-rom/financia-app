@@ -3,7 +3,7 @@ import type { Cuenta, TipoCuenta } from "@prisma/client";
 
 export type { Cuenta, TipoCuenta };
 
-export interface CuentaConStats extends Cuenta {
+export interface CuentaConStats extends Omit<Cuenta, "saldo"> {
   saldo: number;
   cantidadTransacciones: number;
   _count?: {
