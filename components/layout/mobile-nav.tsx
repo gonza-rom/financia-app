@@ -11,19 +11,21 @@ import {
   Settings,
   Tag,
   Building2,
-  Wallet
+  Wallet,
+  BarChart2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/dashboard",    label: "Dashboard",     icon: LayoutDashboard },
-  { href: "/transactions", label: "Transacciones", icon: ArrowLeftRight },
-  { href: "/categories",   label: "Categorías",    icon: Tag },
+  { href: "/transactions", label: "Trans", icon: ArrowLeftRight },
+  { href: "/estadisticas",  label: "Stats",   icon: BarChart2 },      // ← agregar
+  { href: "/categories",   label: "Cat",    icon: Tag },
   { href: "/vehiculos",    label: "Vehículos",     icon: Car },
   { href: "/empresas",     label: "Empresas",      icon: Building2 },
   { href: "/deudas",     label: "Deudas",      icon: Landmark  },
   { href: "/cuentas", label: "Cuentas", icon: Wallet },
-  { href: "/settings",     label: "Configuración", icon: Settings },
+  { href: "/settings",     label: "Config", icon: Settings },
 ];
 
 export function MobileNav() {

@@ -13,7 +13,8 @@ import {
   Car,
   Building2,
   Landmark,
-  Wallet 
+  Wallet,
+  BarChart2 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Usuario } from "@/types";
@@ -26,6 +27,7 @@ import { Button } from "@/components/ui/button";
 const NAV_ITEMS = [
   { href: "/dashboard",    label: "Dashboard",     icon: LayoutDashboard },
   { href: "/transactions", label: "Transacciones", icon: ArrowLeftRight },
+  { href: "/estadisticas",  label: "Estadísticas",   icon: BarChart2 },      // ← agregar
   { href: "/categories",   label: "Categorías",    icon: Tag },
   { href: "/vehiculos",    label: "Vehículos",     icon: Car },
   { href: "/empresas",     label: "Empresas",      icon: Building2 },
