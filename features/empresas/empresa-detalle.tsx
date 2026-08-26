@@ -3,7 +3,9 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import type { EmpresaDetalle, ProyectoConCobros, CobroSerializado, Cliente } from "@/types/empresas";
+import type {
+  EmpresaDetalle, ProyectoConCobros, CobroSerializado, Cliente, GastoEmpresaSerializado,
+} from "@/types/empresas";
 import type { Categoria } from "@/types";
 import { formatCurrency, formatShortDate } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -16,13 +18,16 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
   confirmarCobroAction, eliminarCobroAction,
-  eliminarProyectoAction,
+  eliminarProyectoAction, eliminarClienteAction, eliminarGastoEmpresaAction,
 } from "./actions";
 import { NuevoProyectoDialog } from "./nuevo-proyecto-dialog";
 import { NuevoClienteDialog } from "./nuevo-cliente-dialog";
 import { NuevoCobroDialog } from "./nuevo-cobro-dialog";
 import { NuevoGastoEmpresaDialog } from "./nuevo-gasto-empresa-dialog";
 import { EditarProyectoDialog } from "./editar-proyecto-dialog";
+import { EditarClienteDialog } from "./editar-cliente-dialog";
+import { EditarCobroDialog } from "./editar-cobro-dialog";
+import { EditarGastoEmpresaDialog } from "./editar-gasto-empresa-dialog";
 
 const ESTADO_COLORS: Record<string, string> = {
   ACTIVO:     "bg-income/10 text-income",
@@ -35,6 +40,10 @@ const ESTADO_LABELS: Record<string, string> = {
   ACTIVO: "Activo", PAUSADO: "Pausado", COMPLETADO: "Completado", CANCELADO: "Cancelado",
 };
 
+// Los botones de acción viven en un `group`: en mobile (sin hover) quedan siempre visibles,
+// en desktop se revelan al pasar el mouse por la fila.
+const ACCIONES_FILA = "flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0";
+
 function CobroRow({
   cobro, empresaId, categorias, moneda,
 }: {
@@ -45,6 +54,7 @@ function CobroRow({
 }) {
   const [isPending, startTransition] = useTransition();
   const [confirmarOpen, setConfirmarOpen] = useState(false);
+  const [editarOpen, setEditarOpen] = useState(false);
   const { toast } = useToast();
   const cobrado = cobro.estado === "COBRADO";
 
@@ -57,7 +67,10 @@ function CobroRow({
   }
 
   return (
-    <div className={cn("flex items-center gap-3 px-4 py-3 group", cobrado && "opacity-60")}>
+    <div className={cn(
+      "flex flex-col gap-2 px-4 py-3 group sm:flex-row sm:items-center sm:gap-3",
+      cobrado && "opacity-60"
+    )}>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium">{cobro.descripcion}</p>
         <p className="text-xs text-muted-foreground">
@@ -65,29 +78,42 @@ function CobroRow({
           {cobro.fechaCobro && <> · Cobrado {formatShortDate(cobro.fechaCobro)}</>}
         </p>
       </div>
-      <span className={cn("text-sm font-semibold tabular-nums", cobrado ? "text-income" : "text-muted-foreground")}>
-        {formatCurrency(cobro.monto, moneda)}
-      </span>
-      <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium shrink-0",
-        cobrado ? "bg-income/10 text-income" : "bg-amber-500/10 text-amber-400")}>
-        {cobrado ? "Cobrado" : "Pendiente"}
-      </span>
-      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-        {!cobrado && (
-          <Button variant="ghost" size="icon" className="size-7 text-income hover:text-income"
-            onClick={() => setConfirmarOpen(true)} disabled={isPending} title="Confirmar cobro">
-            <Check className="size-3.5" />
+      <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap sm:shrink-0">
+        <span className={cn("text-sm font-semibold tabular-nums", cobrado ? "text-income" : "text-muted-foreground")}>
+          {formatCurrency(cobro.monto, moneda)}
+        </span>
+        <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium shrink-0",
+          cobrado ? "bg-income/10 text-income" : "bg-amber-500/10 text-amber-400")}>
+          {cobrado ? "Cobrado" : "Pendiente"}
+        </span>
+        <div className={cn(ACCIONES_FILA, "ml-auto sm:ml-0")}>
+          {!cobrado && (
+            <>
+              <Button variant="ghost" size="icon" className="size-7"
+                onClick={() => setEditarOpen(true)} disabled={isPending} title="Editar cobro">
+                <Pencil className="size-3.5" />
+              </Button>
+              <Button variant="ghost" size="icon" className="size-7 text-income hover:text-income"
+                onClick={() => setConfirmarOpen(true)} disabled={isPending} title="Confirmar cobro">
+                <Check className="size-3.5" />
+              </Button>
+            </>
+          )}
+          <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive"
+            onClick={handleEliminar} disabled={isPending} title="Eliminar cobro">
+            <Trash2 className="size-3.5" />
           </Button>
-        )}
-        <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive"
-          onClick={handleEliminar} disabled={isPending}>
-          <Trash2 className="size-3.5" />
-        </Button>
+        </div>
       </div>
       {confirmarOpen && (
         <ConfirmarCobroDialog
           cobro={cobro} empresaId={empresaId} categorias={categorias} moneda={moneda}
           onClose={() => setConfirmarOpen(false)}
+        />
+      )}
+      {editarOpen && (
+        <EditarCobroDialog
+          cobro={cobro} empresaId={empresaId} open={editarOpen} onOpenChange={setEditarOpen}
         />
       )}
     </div>
@@ -181,52 +207,54 @@ function ProyectoCard({
   return (
     <>
       <div className="rounded-xl border border-border bg-card overflow-hidden">
-        <div className="px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="px-4 py-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-3 min-w-0">
             <FolderOpen className="size-4 text-muted-foreground shrink-0" />
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-medium">{proyecto.nombre}</p>
-                <span className={cn("text-[11px] px-1.5 py-0.5 rounded-full font-medium", ESTADO_COLORS[proyecto.estado])}>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-sm font-medium truncate">{proyecto.nombre}</p>
+                <span className={cn("text-[11px] px-1.5 py-0.5 rounded-full font-medium shrink-0", ESTADO_COLORS[proyecto.estado])}>
                   {ESTADO_LABELS[proyecto.estado]}
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground truncate">
                 {proyecto.cliente?.nombre && <>{proyecto.cliente.nombre} · </>}
                 {proyecto.cobros.length} cobro{proyecto.cobros.length !== 1 ? "s" : ""}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center justify-between gap-2 md:justify-end shrink-0">
             <div className="text-right">
               <p className="text-sm font-semibold text-income">{formatCurrency(proyecto.totalCobrado, moneda)}</p>
               {proyecto.totalPendiente > 0 && (
                 <p className="text-xs text-amber-400">{formatCurrency(proyecto.totalPendiente, moneda)} pendiente</p>
               )}
             </div>
-            {/* Botón agregar cobro */}
-            <Button variant="ghost" size="icon" className="size-7" onClick={() => setCobroOpen(true)} title="Agregar cobro">
-              <Plus className="size-3.5" />
-            </Button>
-            {/* Botón editar */}
-            <Button variant="ghost" size="icon" className="size-7" onClick={() => setEditandoOpen(true)} title="Editar proyecto">
-              <Pencil className="size-3.5" />
-            </Button>
-            {/* Botón eliminar */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-7 text-destructive hover:text-destructive"
-              onClick={handleEliminar}
-              disabled={isPending}
-              title="Eliminar proyecto"
-            >
-              <Trash2 className="size-3.5" />
-            </Button>
-            {/* Expandir cobros */}
-            <Button variant="ghost" size="icon" className="size-7" onClick={() => setExpandido(!expandido)}>
-              <span className="text-xs">{expandido ? "▲" : "▼"}</span>
-            </Button>
+            <div className="flex items-center gap-1 shrink-0">
+              {/* Botón agregar cobro */}
+              <Button variant="ghost" size="icon" className="size-7" onClick={() => setCobroOpen(true)} title="Agregar cobro">
+                <Plus className="size-3.5" />
+              </Button>
+              {/* Botón editar */}
+              <Button variant="ghost" size="icon" className="size-7" onClick={() => setEditandoOpen(true)} title="Editar proyecto">
+                <Pencil className="size-3.5" />
+              </Button>
+              {/* Botón eliminar */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 text-destructive hover:text-destructive"
+                onClick={handleEliminar}
+                disabled={isPending}
+                title="Eliminar proyecto"
+              >
+                <Trash2 className="size-3.5" />
+              </Button>
+              {/* Expandir cobros */}
+              <Button variant="ghost" size="icon" className="size-7" onClick={() => setExpandido(!expandido)} title="Ver cobros">
+                <span className="text-xs">{expandido ? "▲" : "▼"}</span>
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -254,6 +282,95 @@ function ProyectoCard({
   );
 }
 
+function ClienteRow({
+  cliente, empresaId, moneda,
+}: {
+  cliente: Cliente & { proyectos: unknown[]; totalGenerado: number };
+  empresaId: string;
+  moneda: string;
+}) {
+  const [isPending, startTransition] = useTransition();
+  const [editarOpen, setEditarOpen] = useState(false);
+  const { toast } = useToast();
+
+  function handleEliminar() {
+    if (!confirm(`¿Eliminar el cliente "${cliente.nombre}"?`)) return;
+    startTransition(async () => {
+      const r = await eliminarClienteAction(cliente.id, empresaId);
+      if (!r.success) toast({ variant: "destructive", title: "Error", description: r.error });
+      else toast({ title: "Cliente eliminado" });
+    });
+  }
+
+  return (
+    <div className="flex items-center gap-4 px-5 py-3.5 group flex-wrap sm:flex-nowrap">
+      <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold shrink-0">
+        {cliente.nombre.charAt(0).toUpperCase()}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium">{cliente.nombre}</p>
+        <p className="text-xs text-muted-foreground">
+          {cliente.email ?? "Sin email"} · {cliente.proyectos.length} proyecto{cliente.proyectos.length !== 1 ? "s" : ""}
+        </p>
+      </div>
+      <div className="flex items-center gap-2 ml-auto sm:ml-0">
+        <p className="text-sm font-semibold text-income">{formatCurrency(cliente.totalGenerado, "ARS")}</p>
+        <div className={ACCIONES_FILA}>
+          <Button variant="ghost" size="icon" className="size-7" onClick={() => setEditarOpen(true)} title="Editar cliente">
+            <Pencil className="size-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive"
+            onClick={handleEliminar} disabled={isPending} title="Eliminar cliente">
+            <Trash2 className="size-3.5" />
+          </Button>
+        </div>
+      </div>
+      {editarOpen && (
+        <EditarClienteDialog cliente={cliente} empresaId={empresaId} open={editarOpen} onOpenChange={setEditarOpen} />
+      )}
+    </div>
+  );
+}
+
+function GastoRow({ gasto, empresaId, moneda }: { gasto: GastoEmpresaSerializado; empresaId: string; moneda: string }) {
+  const [isPending, startTransition] = useTransition();
+  const [editarOpen, setEditarOpen] = useState(false);
+  const { toast } = useToast();
+
+  function handleEliminar() {
+    if (!confirm(`¿Eliminar el gasto "${gasto.descripcion}"?`)) return;
+    startTransition(async () => {
+      const r = await eliminarGastoEmpresaAction(gasto.id, empresaId);
+      if (!r.success) toast({ variant: "destructive", title: "Error", description: r.error });
+      else toast({ title: "Gasto eliminado" });
+    });
+  }
+
+  return (
+    <div className="flex items-center gap-4 px-5 py-3.5 group flex-wrap sm:flex-nowrap">
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium">{gasto.descripcion}</p>
+        <p className="text-xs text-muted-foreground">{formatShortDate(gasto.fecha)}</p>
+      </div>
+      <div className="flex items-center gap-2 ml-auto sm:ml-0">
+        <p className="text-sm font-semibold text-expense">{formatCurrency(gasto.monto, moneda)}</p>
+        <div className={ACCIONES_FILA}>
+          <Button variant="ghost" size="icon" className="size-7" onClick={() => setEditarOpen(true)} title="Editar gasto">
+            <Pencil className="size-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive"
+            onClick={handleEliminar} disabled={isPending} title="Eliminar gasto">
+            <Trash2 className="size-3.5" />
+          </Button>
+        </div>
+      </div>
+      {editarOpen && (
+        <EditarGastoEmpresaDialog gasto={gasto} empresaId={empresaId} open={editarOpen} onOpenChange={setEditarOpen} />
+      )}
+    </div>
+  );
+}
+
 export function EmpresaDetallePage({
   empresa, moneda, categorias,
 }: {
@@ -273,21 +390,19 @@ export function EmpresaDetallePage({
       </Link>
 
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-4">
-          <div className="size-12 rounded-xl flex items-center justify-center text-2xl shrink-0"
-            style={{ backgroundColor: `${empresa.color}20` }}>
-            {empresa.logo ?? <Building2 className="size-6" style={{ color: empresa.color }} />}
-          </div>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{empresa.nombre}</h1>
-            {empresa.descripcion && <p className="text-sm text-muted-foreground mt-0.5">{empresa.descripcion}</p>}
-          </div>
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="size-12 rounded-xl flex items-center justify-center text-2xl shrink-0"
+          style={{ backgroundColor: `${empresa.color}20` }}>
+          {empresa.logo ?? <Building2 className="size-6" style={{ color: empresa.color }} />}
+        </div>
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-tight truncate">{empresa.nombre}</h1>
+          {empresa.descripcion && <p className="text-sm text-muted-foreground mt-0.5">{empresa.descripcion}</p>}
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           { label: "Ingresos totales", valor: empresa.totalIngresos, clase: "text-income", icono: TrendingUp },
           { label: "Gastos totales",   valor: empresa.totalGastos,   clase: "text-expense", icono: TrendingDown },
@@ -302,8 +417,8 @@ export function EmpresaDetallePage({
 
       {/* Tabs */}
       <Tabs defaultValue="proyectos">
-        <div className="flex items-center justify-between">
-          <TabsList>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <TabsList className="w-full overflow-x-auto justify-start md:w-auto md:justify-center">
             <TabsTrigger value="proyectos">
               <FolderOpen className="size-3.5 mr-1.5" /> Proyectos ({empresa.proyectos.length})
             </TabsTrigger>
@@ -314,7 +429,7 @@ export function EmpresaDetallePage({
               <TrendingDown className="size-3.5 mr-1.5" /> Gastos ({empresa.gastos.length})
             </TabsTrigger>
           </TabsList>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button size="sm" variant="outline" className="gap-1.5 h-8" onClick={() => setClienteOpen(true)}>
               <Plus className="size-3.5" /> Cliente
             </Button>
@@ -354,18 +469,7 @@ export function EmpresaDetallePage({
           ) : (
             <div className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
               {empresa.clientes.map((c) => (
-                <div key={c.id} className="flex items-center gap-4 px-5 py-3.5">
-                  <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold shrink-0">
-                    {c.nombre.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{c.nombre}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {c.email ?? "Sin email"} · {c.proyectos.length} proyecto{c.proyectos.length !== 1 ? "s" : ""}
-                    </p>
-                  </div>
-                  <p className="text-sm font-semibold text-income">{formatCurrency(c.totalGenerado, moneda)}</p>
-                </div>
+                <ClienteRow key={c.id} cliente={c} empresaId={empresa.id} moneda={moneda} />
               ))}
             </div>
           )}
@@ -379,13 +483,7 @@ export function EmpresaDetallePage({
           ) : (
             <div className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
               {empresa.gastos.map((g) => (
-                <div key={g.id} className="flex items-center gap-4 px-5 py-3.5">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{g.descripcion}</p>
-                    <p className="text-xs text-muted-foreground">{formatShortDate(g.fecha)}</p>
-                  </div>
-                  <p className="text-sm font-semibold text-expense">{formatCurrency(g.monto, moneda)}</p>
-                </div>
+                <GastoRow key={g.id} gasto={g} empresaId={empresa.id} moneda={moneda} />
               ))}
             </div>
           )}

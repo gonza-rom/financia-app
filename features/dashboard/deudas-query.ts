@@ -4,7 +4,7 @@ import { unstable_cache } from "next/cache";
 
 export const getCachedResumenDeudas = unstable_cache(
   async (usuarioId: string) => {
-    const [cobrar, pagar, cobrarCuotas, pagarCuotas] = await Promise.all([
+    const [cobrar, pagar] = await Promise.all([
       prisma.deuda.findMany({
         where: { usuarioId, estado: { in: ["PENDIENTE", "VENCIDA"] }, tipo: "COBRAR" },
         select: { montoTotal: true, montoPagado: true, cuotas: { select: { id: true } } },
@@ -12,22 +12,6 @@ export const getCachedResumenDeudas = unstable_cache(
       prisma.deuda.findMany({
         where: { usuarioId, estado: { in: ["PENDIENTE", "VENCIDA"] }, tipo: "PAGAR" },
         select: { montoTotal: true, montoPagado: true, cuotas: { select: { id: true } } },
-      }),
-      // cuotas pendientes este mes — cobrar
-      prisma.cuotaDeuda.findMany({
-        where: {
-          pagada: false,
-          deuda: { usuarioId, tipo: "COBRAR", estado: { in: ["PENDIENTE", "VENCIDA"] } },
-        },
-        select: { monto: true },
-      }),
-      // cuotas pendientes este mes — pagar
-      prisma.cuotaDeuda.findMany({
-        where: {
-          pagada: false,
-          deuda: { usuarioId, tipo: "PAGAR", estado: { in: ["PENDIENTE", "VENCIDA"] } },
-        },
-        select: { monto: true },
       }),
     ]);
 

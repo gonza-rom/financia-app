@@ -37,7 +37,7 @@ export function DeudaHeader({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Deudas</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
@@ -45,7 +45,7 @@ export function DeudaHeader({
           </p>
         </div>
         {vencidas > 0 && (
-          <div className="flex items-center gap-1.5 text-sm font-medium text-destructive bg-destructive/10 px-3 py-1.5 rounded-full">
+          <div className="flex items-center gap-1.5 text-sm font-medium text-destructive bg-destructive/10 px-3 py-1.5 rounded-full shrink-0">
             <AlertTriangle className="size-3.5" />
             {vencidas} vencida{vencidas > 1 ? "s" : ""}
           </div>
@@ -93,18 +93,18 @@ export function DeudaHeader({
       {/* Cuotas — sección informativa separada, no afecta el balance */}
       {tieneCuotas && (
         <div className="rounded-xl border border-dashed border-border bg-muted/30 p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Receipt className="size-4 text-muted-foreground" />
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Receipt className="size-4 text-muted-foreground shrink-0" />
               <span className="text-sm font-medium text-muted-foreground">
                 Compromisos en cuotas
               </span>
-              <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full whitespace-nowrap">
                 No afectan el balance
               </span>
             </div>
             {cuotasEsteMes > 0 && (
-              <div className="text-right">
+              <div className="text-right shrink-0">
                 <p className="text-xs text-muted-foreground">Este mes</p>
                 <p className="text-sm font-semibold text-rose-600 dark:text-rose-400 tabular-nums">
                   {formatMoney(cuotasEsteMes, moneda)}

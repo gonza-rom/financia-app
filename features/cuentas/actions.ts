@@ -135,21 +135,27 @@ export async function transferirEntreCuentasAction(
 
     if (!origen || !destino) return { success: false, error: "Cuenta no encontrada." };
 
-    const saldoOrigen = Number(origen.saldo);
-    if (monto > saldoOrigen) {
-      return { success: false, error: "Saldo insuficiente en la cuenta de origen." };
+    // Débito atómico y condicionado al saldo disponible (evita perder plata con transferencias concurrentes)
+    try {
+      await prisma.$transaction(async (tx) => {
+        const debito = await tx.cuenta.updateMany({
+          where: { id: cuentaOrigenId, usuarioId: usuario.id, saldo: { gte: monto } },
+          data: { saldo: { decrement: monto } },
+        });
+        if (debito.count === 0) {
+          throw new Error("SALDO_INSUFICIENTE");
+        }
+        await tx.cuenta.updateMany({
+          where: { id: cuentaDestinoId, usuarioId: usuario.id },
+          data: { saldo: { increment: monto } },
+        });
+      });
+    } catch (err) {
+      if (err instanceof Error && err.message === "SALDO_INSUFICIENTE") {
+        return { success: false, error: "Saldo insuficiente en la cuenta de origen." };
+      }
+      throw err;
     }
-
-    await prisma.$transaction([
-      prisma.cuenta.update({
-        where: { id: cuentaOrigenId },
-        data: { saldo: saldoOrigen - monto },
-      }),
-      prisma.cuenta.update({
-        where: { id: cuentaDestinoId },
-        data: { saldo: Number(destino.saldo) + monto },
-      }),
-    ]);
 
     revalidateTag("cuentas");
     revalidatePath("/cuentas");

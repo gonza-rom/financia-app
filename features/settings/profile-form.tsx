@@ -16,24 +16,12 @@ import {
 import type { Usuario } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { updateProfileAction } from "./actions";
+import { MONEDAS } from "@/lib/monedas";
 
 interface FormularioPerfil {
   nombre: string;
   moneda: string;
 }
-
-const MONEDAS = [
-  { value: "ARS", label: "ARS — Peso Argentino" },
-  { value: "USD", label: "USD — Dólar Estadounidense" },
-  { value: "EUR", label: "EUR — Euro" },
-  { value: "BRL", label: "BRL — Real Brasileño" },
-  { value: "CLP", label: "CLP — Peso Chileno" },
-  { value: "MXN", label: "MXN — Peso Mexicano" },
-  { value: "COP", label: "COP — Peso Colombiano" },
-  { value: "UYU", label: "UYU — Peso Uruguayo" },
-  { value: "GBP", label: "GBP — Libra Esterlina" },
-  { value: "JPY", label: "JPY — Yen Japonés" },
-];
 
 export function ProfileForm({ user }: { user: Usuario }) {
   const [isPending, startTransition] = useTransition();
@@ -82,6 +70,9 @@ export function ProfileForm({ user }: { user: Usuario }) {
             ))}
           </SelectContent>
         </Select>
+        <p className="text-xs text-muted-foreground">
+          Cambia solo el símbolo con el que se muestran los montos — no convierte lo que ya cargaste.
+        </p>
       </div>
       <Button type="submit" disabled={isPending}>
         {isPending ? "Guardando…" : "Guardar cambios"}

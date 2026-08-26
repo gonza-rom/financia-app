@@ -58,7 +58,7 @@ export async function registerAction(formData: FormData) {
 
   if (!data.session) {
     return {
-      error: "Te enviamos un email de confirmación. Revisá tu bandeja para activar tu cuenta.",
+      info: "Te enviamos un email de confirmación. Revisá tu bandeja para activar tu cuenta.",
     };
   }
 

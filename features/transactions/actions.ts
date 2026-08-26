@@ -11,6 +11,15 @@ export async function createTransactionAction(
   try {
     const usuario = await getCurrentUser();
 
+    const [categoria, cuenta] = await Promise.all([
+      prisma.categoria.findFirst({ where: { id: data.categoriaId, usuarioId: usuario.id } }),
+      data.cuentaId
+        ? prisma.cuenta.findFirst({ where: { id: data.cuentaId, usuarioId: usuario.id } })
+        : Promise.resolve(null),
+    ]);
+    if (!categoria) return { success: false, error: "Categoría no encontrada." };
+    if (data.cuentaId && !cuenta) return { success: false, error: "Cuenta no encontrada." };
+
     const transaccion = await prisma.$transaction(async (tx) => {
       const transaccion = await tx.transaccion.create({
         data: {
@@ -60,6 +69,15 @@ export async function updateTransactionAction(
 ): Promise<ResultadoAccion> {
   try {
     const usuario = await getCurrentUser();
+
+    if (data.categoriaId !== undefined) {
+      const categoria = await prisma.categoria.findFirst({ where: { id: data.categoriaId, usuarioId: usuario.id } });
+      if (!categoria) return { success: false, error: "Categoría no encontrada." };
+    }
+    if (data.cuentaId) {
+      const cuenta = await prisma.cuenta.findFirst({ where: { id: data.cuentaId, usuarioId: usuario.id } });
+      if (!cuenta) return { success: false, error: "Cuenta no encontrada." };
+    }
 
     await prisma.$transaction(async (tx) => {
       // Buscar la transacción original para calcular diferencias

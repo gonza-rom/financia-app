@@ -14,19 +14,29 @@ export function formatCurrency(amount: number, currency = "USD"): string {
   }).format(amount);
 }
 
+// "yyyy-MM-dd" (sin hora) se interpreta como medianoche UTC — en Argentina (UTC-3)
+// eso muestra el día anterior. Si llega así, la anclamos al mediodía local antes de formatear.
+function aFechaLocal(date: Date | string): Date {
+  if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    const [year, month, day] = date.split("-").map(Number);
+    return new Date(year, month - 1, day, 12, 0, 0);
+  }
+  return new Date(date);
+}
+
 export function formatDate(date: Date | string): string {
   return new Intl.DateTimeFormat("es-AR", {
     year: "numeric",
     month: "short",
     day: "numeric",
-  }).format(new Date(date));
+  }).format(aFechaLocal(date));
 }
 
 export function formatShortDate(date: Date | string): string {
   return new Intl.DateTimeFormat("es-AR", {
     month: "short",
     day: "numeric",
-  }).format(new Date(date));
+  }).format(aFechaLocal(date));
 }
 
 export function getMonthRange(date: Date = new Date()): { from: Date; to: Date } {

@@ -49,12 +49,12 @@ export function CategoryPieChart({ data, moneda }: CategoryPieChartProps) {
       </ResponsiveContainer>
       <div className="space-y-2 mt-3">
         {data.slice(0, 5).map((item) => (
-          <div key={item.categoriaId} className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2">
-              <div className="size-2 rounded-full" style={{ backgroundColor: item.color }} />
-              <span className="text-muted-foreground">{item.nombreCategoria}</span>
+          <div key={item.categoriaId} className="flex items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="size-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+              <span className="text-muted-foreground truncate">{item.nombreCategoria}</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <span className="font-medium">{formatCurrency(item.monto, moneda)}</span>
               <span className="text-muted-foreground w-10 text-right">{item.porcentaje.toFixed(0)}%</span>
             </div>
