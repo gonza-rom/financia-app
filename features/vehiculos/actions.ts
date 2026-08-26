@@ -134,13 +134,14 @@ export async function crearSeccionAction(
 
 export async function actualizarSeccionAction(
   id: string,
+  vehiculoId: string,
   data: Partial<FormularioSeccion>
 ): Promise<Resultado> {
   try {
-    await getCurrentUser();
+    const usuario = await getCurrentUser();
 
-    await prisma.seccionVehiculo.update({
-      where: { id },
+    await prisma.seccionVehiculo.updateMany({
+      where: { id, vehiculo: { id: vehiculoId, usuarioId: usuario.id } },
       data: {
         ...(data.nombre && { nombre: data.nombre.trim() }),
         ...(data.icono && { icono: data.icono }),
@@ -156,11 +157,13 @@ export async function actualizarSeccionAction(
   }
 }
 
-export async function eliminarSeccionAction(id: string): Promise<Resultado> {
+export async function eliminarSeccionAction(id: string, vehiculoId: string): Promise<Resultado> {
   try {
-    await getCurrentUser();
+    const usuario = await getCurrentUser();
 
-    await prisma.seccionVehiculo.delete({ where: { id } });
+    await prisma.seccionVehiculo.deleteMany({
+      where: { id, vehiculo: { id: vehiculoId, usuarioId: usuario.id } },
+    });
 
     revalidateTag("vehiculos");
     return { success: true, data: undefined };
@@ -251,13 +254,14 @@ export async function crearGastoVehiculoAction(
 
 export async function actualizarGastoVehiculoAction(
   id: string,
+  vehiculoId: string,
   data: Partial<FormularioGastoVehiculo>
 ): Promise<Resultado> {
   try {
-    await getCurrentUser();
+    const usuario = await getCurrentUser();
 
-    await prisma.gastoVehiculo.update({
-      where: { id },
+    await prisma.gastoVehiculo.updateMany({
+      where: { id, vehiculo: { id: vehiculoId, usuarioId: usuario.id } },
       data: {
         ...(data.monto !== undefined && { monto: data.monto }),
         ...(data.fecha !== undefined && { fecha: data.fecha }),
@@ -279,10 +283,12 @@ export async function actualizarGastoVehiculoAction(
   }
 }
 
-export async function eliminarGastoVehiculoAction(id: string): Promise<Resultado> {
+export async function eliminarGastoVehiculoAction(id: string, vehiculoId: string): Promise<Resultado> {
   try {
-    await getCurrentUser();
-    await prisma.gastoVehiculo.delete({ where: { id } });
+    const usuario = await getCurrentUser();
+    await prisma.gastoVehiculo.deleteMany({
+      where: { id, vehiculo: { id: vehiculoId, usuarioId: usuario.id } },
+    });
     revalidateTag("vehiculos");
     return { success: true, data: undefined };
   } catch (err) {

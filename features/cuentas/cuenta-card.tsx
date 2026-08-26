@@ -63,7 +63,7 @@ export function CuentaCard({ cuenta, moneda }: CuentaCardProps) {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity">
+                <button className="rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                   <MoreHorizontal className="size-4" />
                 </button>
               </DropdownMenuTrigger>

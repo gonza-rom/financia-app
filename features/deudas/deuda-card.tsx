@@ -102,53 +102,55 @@ export function DeudaCard({ deuda, categorias }: DeudaCardProps) {
         deuda.estado === "vencida" && "border-rose-200 dark:border-rose-900/60",
         isPending && "opacity-60 pointer-events-none",
       )}>
-        <div className="p-4 flex items-start gap-3">
-          <div className="mt-0.5 rounded-lg bg-muted p-2 shrink-0">
-            {deuda.empresaId
-              ? <Building2 className="size-4 text-muted-foreground" />
-              : <User className="size-4 text-muted-foreground" />}
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-medium truncate">{deuda.contraparte}</span>
-              <span className={cn(
-                "inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full",
-                config.className,
-              )}>
-                <Icon className="size-3" />
-                {config.label}
-              </span>
+        <div className="p-4 flex flex-col gap-3 sm:flex-row sm:items-start">
+          <div className="flex items-start gap-3 min-w-0 flex-1">
+            <div className="mt-0.5 rounded-lg bg-muted p-2 shrink-0">
+              {deuda.empresaId
+                ? <Building2 className="size-4 text-muted-foreground" />
+                : <User className="size-4 text-muted-foreground" />}
             </div>
 
-            {deuda.descripcion && (
-              <p className="text-sm text-muted-foreground mt-0.5 truncate">{deuda.descripcion}</p>
-            )}
-
-            {deuda.fechaVencimiento && totalCuotas === 0 && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1.5">
-                <Calendar className="size-3" />
-                Vence el {formatDate(deuda.fechaVencimiento)}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-medium truncate">{deuda.contraparte}</span>
+                <span className={cn(
+                  "inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full shrink-0",
+                  config.className,
+                )}>
+                  <Icon className="size-3" />
+                  {config.label}
+                </span>
               </div>
-            )}
 
-            {totalCuotas > 0 && (
-              <div className="mt-2 space-y-1">
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Cuotas</span>
-                  <span>{cuotasPagadas} / {totalCuotas}</span>
+              {deuda.descripcion && (
+                <p className="text-sm text-muted-foreground mt-0.5 truncate">{deuda.descripcion}</p>
+              )}
+
+              {deuda.fechaVencimiento && totalCuotas === 0 && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1.5">
+                  <Calendar className="size-3" />
+                  Vence el {formatDate(deuda.fechaVencimiento)}
                 </div>
-                <Progress value={progreso} className="h-1.5" />
-              </div>
-            )}
+              )}
+
+              {totalCuotas > 0 && (
+                <div className="mt-2 space-y-1">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Cuotas</span>
+                    <span>{cuotasPagadas} / {totalCuotas}</span>
+                  </div>
+                  <Progress value={progreso} className="h-1.5" />
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="flex flex-col items-end gap-2 shrink-0">
+          <div className="flex items-center justify-between gap-2 sm:flex-col sm:items-end sm:justify-start sm:shrink-0">
             <span className="font-semibold text-base">
               {formatMoney(deuda.montoTotal, deuda.moneda)}
             </span>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 flex-wrap justify-end">
               {/* Pago parcial — solo deudas sin cuotas y pendientes */}
               {!yaTerminada && totalCuotas === 0 && (
                 <Button

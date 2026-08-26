@@ -61,7 +61,10 @@ export async function eliminarEmpresaAction(id: string): Promise<Resultado> {
 
 export async function crearClienteAction(empresaId: string, data: FormularioCliente): Promise<Resultado<{ id: string }>> {
   try {
-    await getCurrentUser();
+    const usuario = await getCurrentUser();
+    const empresa = await prisma.empresa.findFirst({ where: { id: empresaId, usuarioId: usuario.id } });
+    if (!empresa) return { success: false, error: "Empresa no encontrada." };
+
     const cliente = await prisma.cliente.create({
       data: { ...data, empresaId },
     });
@@ -74,10 +77,36 @@ export async function crearClienteAction(empresaId: string, data: FormularioClie
   }
 }
 
+export async function actualizarClienteAction(
+  id: string,
+  empresaId: string,
+  data: Partial<FormularioCliente>
+): Promise<Resultado> {
+  try {
+    const usuario = await getCurrentUser();
+    await prisma.cliente.updateMany({
+      where: { id, empresa: { id: empresaId, usuarioId: usuario.id } },
+      data: {
+        ...(data.nombre !== undefined && { nombre: data.nombre }),
+        ...(data.email !== undefined && { email: data.email || null }),
+        ...(data.telefono !== undefined && { telefono: data.telefono || null }),
+      },
+    });
+    revalidateTag("empresas");
+    revalidatePath(`/empresas/${empresaId}`);
+    return { success: true, data: undefined };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: "Error al actualizar el cliente." };
+  }
+}
+
 export async function eliminarClienteAction(id: string, empresaId: string): Promise<Resultado> {
   try {
-    await getCurrentUser();
-    await prisma.cliente.delete({ where: { id } });
+    const usuario = await getCurrentUser();
+    await prisma.cliente.deleteMany({
+      where: { id, empresa: { id: empresaId, usuarioId: usuario.id } },
+    });
     revalidateTag("empresas");
     revalidatePath(`/empresas/${empresaId}`);
     return { success: true, data: undefined };
@@ -91,7 +120,10 @@ export async function eliminarClienteAction(id: string, empresaId: string): Prom
 
 export async function crearProyectoAction(empresaId: string, data: FormularioProyecto): Promise<Resultado<{ id: string }>> {
   try {
-    await getCurrentUser();
+    const usuario = await getCurrentUser();
+    const empresa = await prisma.empresa.findFirst({ where: { id: empresaId, usuarioId: usuario.id } });
+    if (!empresa) return { success: false, error: "Empresa no encontrada." };
+
     const proyecto = await prisma.proyecto.create({
       data: {
         nombre: data.nombre,
@@ -119,9 +151,9 @@ export async function actualizarProyectoAction(
   data: Partial<FormularioProyecto> & { estado?: string }
 ): Promise<Resultado> {
   try {
-    await getCurrentUser();
-    await prisma.proyecto.update({
-      where: { id },
+    const usuario = await getCurrentUser();
+    await prisma.proyecto.updateMany({
+      where: { id, empresa: { id: empresaId, usuarioId: usuario.id } },
       data: {
         ...(data.nombre !== undefined && { nombre: data.nombre }),
         ...(data.descripcion !== undefined && { descripcion: data.descripcion ?? null }),
@@ -144,8 +176,10 @@ export async function actualizarProyectoAction(
 
 export async function eliminarProyectoAction(id: string, empresaId: string): Promise<Resultado> {
   try {
-    await getCurrentUser();
-    await prisma.proyecto.delete({ where: { id } });
+    const usuario = await getCurrentUser();
+    await prisma.proyecto.deleteMany({
+      where: { id, empresa: { id: empresaId, usuarioId: usuario.id } },
+    });
     revalidateTag("empresas");
     revalidatePath(`/empresas/${empresaId}`);
     return { success: true, data: undefined };
@@ -159,8 +193,11 @@ export async function actualizarEstadoProyectoAction(
   id: string, empresaId: string, estado: string
 ): Promise<Resultado> {
   try {
-    await getCurrentUser();
-    await prisma.proyecto.update({ where: { id }, data: { estado: estado as any } });
+    const usuario = await getCurrentUser();
+    await prisma.proyecto.updateMany({
+      where: { id, empresa: { id: empresaId, usuarioId: usuario.id } },
+      data: { estado: estado as any },
+    });
     revalidateTag("empresas");
     revalidatePath(`/empresas/${empresaId}`);
     return { success: true, data: undefined };
@@ -174,7 +211,12 @@ export async function actualizarEstadoProyectoAction(
 
 export async function crearCobroAction(proyectoId: string, empresaId: string, data: FormularioCobro): Promise<Resultado> {
   try {
-    await getCurrentUser();
+    const usuario = await getCurrentUser();
+    const proyecto = await prisma.proyecto.findFirst({
+      where: { id: proyectoId, empresa: { id: empresaId, usuarioId: usuario.id } },
+    });
+    if (!proyecto) return { success: false, error: "Proyecto no encontrado." };
+
     await prisma.cobroProyecto.create({
       data: {
         descripcion: data.descripcion,
@@ -192,6 +234,31 @@ export async function crearCobroAction(proyectoId: string, empresaId: string, da
   }
 }
 
+export async function actualizarCobroAction(
+  id: string,
+  empresaId: string,
+  data: Partial<FormularioCobro>
+): Promise<Resultado> {
+  try {
+    const usuario = await getCurrentUser();
+    // Solo se puede editar mientras está pendiente: una vez cobrado, el monto ya generó (o no) una transacción personal.
+    await prisma.cobroProyecto.updateMany({
+      where: { id, estado: "PENDIENTE", proyecto: { empresa: { id: empresaId, usuarioId: usuario.id } } },
+      data: {
+        ...(data.descripcion !== undefined && { descripcion: data.descripcion }),
+        ...(data.monto !== undefined && { monto: data.monto }),
+        ...(data.fechaEstimada !== undefined && { fechaEstimada: data.fechaEstimada ?? null }),
+      },
+    });
+    revalidateTag("empresas");
+    revalidatePath(`/empresas/${empresaId}`);
+    return { success: true, data: undefined };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: "Error al actualizar el cobro." };
+  }
+}
+
 export async function confirmarCobroAction(
   cobroId: string,
   empresaId: string,
@@ -204,11 +271,16 @@ export async function confirmarCobroAction(
       where: { id: cobroId },
       include: { proyecto: { include: { empresa: true } } },
     });
-    if (!cobro) return { success: false, error: "Cobro no encontrado." };
+    if (!cobro || cobro.proyecto.empresa.usuarioId !== usuario.id) {
+      return { success: false, error: "Cobro no encontrado." };
+    }
 
     let transaccionId: string | undefined;
 
     if (transferirAPersonal && categoriaId) {
+      const categoria = await prisma.categoria.findFirst({ where: { id: categoriaId, usuarioId: usuario.id } });
+      if (!categoria) return { success: false, error: "Categoría no encontrada." };
+
       const tx = await prisma.transaccion.create({
         data: {
           monto: cobro.monto,
@@ -246,8 +318,10 @@ export async function confirmarCobroAction(
 
 export async function eliminarCobroAction(id: string, empresaId: string): Promise<Resultado> {
   try {
-    await getCurrentUser();
-    await prisma.cobroProyecto.delete({ where: { id } });
+    const usuario = await getCurrentUser();
+    await prisma.cobroProyecto.deleteMany({
+      where: { id, proyecto: { empresa: { id: empresaId, usuarioId: usuario.id } } },
+    });
     revalidateTag("empresas");
     revalidatePath(`/empresas/${empresaId}`);
     return { success: true, data: undefined };
@@ -266,10 +340,15 @@ export async function crearGastoEmpresaAction(
 ): Promise<Resultado> {
   try {
     const usuario = await getCurrentUser();
+    const empresa = await prisma.empresa.findFirst({ where: { id: empresaId, usuarioId: usuario.id } });
+    if (!empresa) return { success: false, error: "Empresa no encontrada." };
 
     let transaccionId: string | undefined;
 
     if (data.transferirAPersonal && categoriaId) {
+      const categoria = await prisma.categoria.findFirst({ where: { id: categoriaId, usuarioId: usuario.id } });
+      if (!categoria) return { success: false, error: "Categoría no encontrada." };
+
       const tx = await prisma.transaccion.create({
         data: {
           monto: data.monto,
@@ -303,5 +382,59 @@ export async function crearGastoEmpresaAction(
   } catch (err) {
     console.error(err);
     return { success: false, error: "Error al registrar el gasto." };
+  }
+}
+
+export async function actualizarGastoEmpresaAction(
+  id: string,
+  empresaId: string,
+  data: Partial<Pick<FormularioGastoEmpresa, "descripcion" | "monto" | "fecha" | "notas">>
+): Promise<Resultado> {
+  try {
+    const usuario = await getCurrentUser();
+    await prisma.gastoEmpresa.updateMany({
+      where: { id, empresa: { id: empresaId, usuarioId: usuario.id } },
+      data: {
+        ...(data.descripcion !== undefined && { descripcion: data.descripcion }),
+        ...(data.monto !== undefined && { monto: data.monto }),
+        ...(data.fecha !== undefined && { fecha: data.fecha }),
+        ...(data.notas !== undefined && { notas: data.notas ?? null }),
+      },
+    });
+    revalidateTag("empresas");
+    revalidatePath(`/empresas/${empresaId}`);
+    return { success: true, data: undefined };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: "Error al actualizar el gasto." };
+  }
+}
+
+export async function eliminarGastoEmpresaAction(id: string, empresaId: string): Promise<Resultado> {
+  try {
+    const usuario = await getCurrentUser();
+    const gasto = await prisma.gastoEmpresa.findFirst({
+      where: { id, empresa: { id: empresaId, usuarioId: usuario.id } },
+    });
+    if (!gasto) return { success: false, error: "Gasto no encontrado." };
+
+    await prisma.$transaction([
+      prisma.gastoEmpresa.delete({ where: { id } }),
+      ...(gasto.transaccionId
+        ? [prisma.transaccion.deleteMany({ where: { id: gasto.transaccionId, usuarioId: usuario.id } })]
+        : []),
+    ]);
+
+    revalidateTag("empresas");
+    if (gasto.transaccionId) {
+      revalidateTag("transacciones");
+      revalidatePath("/dashboard");
+      revalidatePath("/transactions");
+    }
+    revalidatePath(`/empresas/${empresaId}`);
+    return { success: true, data: undefined };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: "Error al eliminar el gasto." };
   }
 }

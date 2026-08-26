@@ -47,7 +47,7 @@ export function DeudaList({ deudas, categorias }: DeudaListProps) {
   return (
     <>
       <Tabs defaultValue="cobrar" className="w-full">
-        <div className="flex items-center justify-between mb-4 gap-3">
+        <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
           <TabsList>
             <TabsTrigger value="cobrar">
               Me deben

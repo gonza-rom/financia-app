@@ -30,7 +30,7 @@ export function SeccionCard({ vehiculoId, seccion, moneda,categorias }: SeccionC
   function handleEliminarGasto(id: string) {
     if (!confirm("¿Eliminar este gasto?")) return;
     startTransition(async () => {
-      const result = await eliminarGastoVehiculoAction(id);
+      const result = await eliminarGastoVehiculoAction(id, vehiculoId);
       if (!result.success) {
         toast({ variant: "destructive", title: "Error", description: result.error });
       } else {
@@ -88,7 +88,7 @@ export function SeccionCard({ vehiculoId, seccion, moneda,categorias }: SeccionC
                 onClick={() => {
                     if (!confirm(`¿Eliminar la sección "${seccion.nombre}"? Se eliminarán también todos sus gastos.`)) return;
                     startTransition(async () => {
-                    const result = await eliminarSeccionAction(seccion.id);
+                    const result = await eliminarSeccionAction(seccion.id, vehiculoId);
                     if (!result.success) {
                         toast({ variant: "destructive", title: "Error", description: result.error });
                     } else {
@@ -163,7 +163,7 @@ export function SeccionCard({ vehiculoId, seccion, moneda,categorias }: SeccionC
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="size-6 text-destructive hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="size-6 text-destructive hover:text-destructive opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                         onClick={() => handleEliminarGasto(gasto.id)}
                         disabled={isPending}
                       >

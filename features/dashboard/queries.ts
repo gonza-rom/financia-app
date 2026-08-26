@@ -28,13 +28,13 @@ export const getCachedDashboardStats = unstable_cache(
           where: { usuarioId },
           _sum: { monto: true },
         }),
-        // Deudas que te deben — CON y SIN cuotas (todo suma)
+        // Deudas que te deben — SIN cuotas (las cuotas son "compromisos" que no afectan el balance, igual que en pagarDeudas)
         prisma.deuda.findMany({
           where: {
             usuarioId,
             tipo: "COBRAR",
             estado: { in: ["PENDIENTE", "VENCIDA"] },
-            // ← sin filtro de cuotas
+            cuotas: { none: {} },
           },
           select: { montoTotal: true, montoPagado: true },
         }),

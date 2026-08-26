@@ -2,7 +2,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import type { Categoria } from "@/types";
 import { TipoTransaccion } from "@prisma/client";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ interface TransactionFiltersBarProps {
 export function TransactionFiltersBar({ categorias }: TransactionFiltersBarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const busquedaTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const updateParam = useCallback((key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -66,8 +67,8 @@ export function TransactionFiltersBar({ categorias }: TransactionFiltersBarProps
         defaultValue={searchParams.get("busqueda") ?? ""}
         onChange={(e) => {
           const val = e.target.value;
-          const timeout = setTimeout(() => updateParam("busqueda", val || null), 400);
-          return () => clearTimeout(timeout);
+          clearTimeout(busquedaTimeout.current);
+          busquedaTimeout.current = setTimeout(() => updateParam("busqueda", val || null), 400);
         }} />
 
       {hayFiltros && (
