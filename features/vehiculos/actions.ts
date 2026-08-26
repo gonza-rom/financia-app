@@ -194,6 +194,10 @@ export async function crearGastoVehiculoAction(
     if (data.registrarEnFinanzas && !data.categoriaId) {
       return { success: false, error: "Seleccioná una categoría para registrar en finanzas." };
     }
+    if (data.categoriaId) {
+      const categoria = await prisma.categoria.findFirst({ where: { id: data.categoriaId, usuarioId: usuario.id } });
+      if (!categoria) return { success: false, error: "Categoría no encontrada." };
+    }
 
     // Crear transacción personal si se solicita
     let transaccionId: string | undefined;
@@ -286,10 +290,43 @@ export async function actualizarGastoVehiculoAction(
 export async function eliminarGastoVehiculoAction(id: string, vehiculoId: string): Promise<Resultado> {
   try {
     const usuario = await getCurrentUser();
-    await prisma.gastoVehiculo.deleteMany({
+
+    const gasto = await prisma.gastoVehiculo.findFirst({
       where: { id, vehiculo: { id: vehiculoId, usuarioId: usuario.id } },
+      include: { vehiculo: true },
     });
+    if (!gasto) return { success: false, error: "Gasto no encontrado." };
+
+    // Si este gasto era el que había fijado el kilometraje actual del vehículo,
+    // lo recalculamos a partir del resto de gastos con km registrado (nunca lo
+    // subimos — solo lo bajamos al siguiente valor conocido, o lo dejamos si no hay otro).
+    let nuevoKm: number | undefined;
+    if (gasto.kilometraje != null && gasto.kilometraje === gasto.vehiculo.kilometraje) {
+      const otros = await prisma.gastoVehiculo.findMany({
+        where: { vehiculoId, id: { not: id }, kilometraje: { not: null } },
+        select: { kilometraje: true },
+      });
+      if (otros.length > 0) {
+        nuevoKm = Math.max(...otros.map((o) => o.kilometraje!));
+      }
+    }
+
+    await prisma.$transaction([
+      prisma.gastoVehiculo.delete({ where: { id } }),
+      ...(gasto.transaccionId
+        ? [prisma.transaccion.deleteMany({ where: { id: gasto.transaccionId, usuarioId: usuario.id } })]
+        : []),
+      ...(nuevoKm !== undefined
+        ? [prisma.vehiculo.update({ where: { id: vehiculoId }, data: { kilometraje: nuevoKm } })]
+        : []),
+    ]);
+
     revalidateTag("vehiculos");
+    if (gasto.transaccionId) {
+      revalidateTag("transacciones");
+      revalidatePath("/dashboard");
+      revalidatePath("/transacciones");
+    }
     return { success: true, data: undefined };
   } catch (err) {
     console.error("[eliminarGastoVehiculo]", err);

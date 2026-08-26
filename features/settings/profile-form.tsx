@@ -70,6 +70,9 @@ export function ProfileForm({ user }: { user: Usuario }) {
             ))}
           </SelectContent>
         </Select>
+        <p className="text-xs text-muted-foreground">
+          Cambia solo el símbolo con el que se muestran los montos — no convierte lo que ya cargaste.
+        </p>
       </div>
       <Button type="submit" disabled={isPending}>
         {isPending ? "Guardando…" : "Guardar cambios"}

@@ -20,6 +20,8 @@ export function RegisterForm() {
       const result = await registerAction(formData);
       if (result?.error) {
         toast({ variant: "destructive", title: "Error", description: result.error });
+      } else if (result?.info) {
+        toast({ title: "Cuenta creada", description: result.info });
       }
     });
   }

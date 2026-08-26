@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { Moneda } from "@/types/deudas";
+import { generarCuotas } from "./cuotas";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -34,25 +35,6 @@ function toNumber(val: unknown): number {
   return isNaN(n) ? 0 : n;
 }
 
-function generarCuotas(montoTotal: number, cantidad: number, fechaInicio: Date) {
-  const monto = Math.round((montoTotal / cantidad) * 100) / 100;
-  const diaBase = fechaInicio.getDate();
-
-  return Array.from({ length: cantidad }, (_, i) => {
-    const anio = fechaInicio.getFullYear();
-    const mes = fechaInicio.getMonth() + i; // sin +1, empieza en el mes elegido
-
-    const ultimoDia = new Date(anio, mes + 1, 0).getDate();
-    const dia = Math.min(diaBase, ultimoDia);
-
-    return {
-      numero: i + 1,
-      monto,
-      fechaVencimiento: new Date(anio, mes, dia),
-    };
-  });
-}
-
 // ─── Crear deuda ──────────────────────────────────────────────────────────────
 
 export async function crearDeuda(
@@ -61,53 +43,62 @@ export async function crearDeuda(
   try {
     const usuario = await getCurrentUser();
 
+    if (input.empresaId) {
+      const empresa = await prisma.empresa.findFirst({ where: { id: input.empresaId, usuarioId: usuario.id } });
+      if (!empresa) return { success: false, error: "Empresa no encontrada." };
+    }
+    if (input.categoriaId) {
+      const categoria = await prisma.categoria.findFirst({ where: { id: input.categoriaId, usuarioId: usuario.id } });
+      if (!categoria) return { success: false, error: "Categoría no encontrada." };
+    }
+
     const cuotas =
       input.tieneCuotas && input.cantidadCuotas && input.cantidadCuotas >= 2
         ? generarCuotas(input.montoTotal, input.cantidadCuotas, input.fechaInicioCuotas ?? new Date())
         : undefined;
 
-      await prisma.$transaction(async (tx) => {
-        const deuda = await tx.deuda.create({
+    const deuda = await prisma.$transaction(async (tx) => {
+      const deuda = await tx.deuda.create({
+        data: {
+          tipo: input.tipo,
+          contraparte: input.contraparte.trim(),
+          descripcion: input.descripcion?.trim() || null,
+          moneda: input.moneda,
+          montoTotal: input.montoTotal,
+          montoPagado: 0,
+          fechaVencimiento: input.fechaVencimiento ?? null,
+          usuarioId: usuario.id,
+          empresaId: input.empresaId,
+          cuotas: cuotas ? { create: cuotas } : undefined,
+        },
+      });
+
+      // Solo crear transacción si tiene categoría Y no tiene cuotas
+      if (input.categoriaId && !input.tieneCuotas) {
+        const descripcion = input.tipo === "COBRAR"
+          ? `Préstamo a ${input.contraparte.trim()}`
+          : `Deuda con ${input.contraparte.trim()}`;
+
+        await tx.transaccion.create({
           data: {
-            tipo: input.tipo,
-            contraparte: input.contraparte.trim(),
-            descripcion: input.descripcion?.trim() || null,
-            moneda: input.moneda,
-            montoTotal: input.montoTotal,
-            montoPagado: 0,
-            fechaVencimiento: input.fechaVencimiento ?? null,
+            monto: input.montoTotal,
+            descripcion,
+            tipo: input.tipo === "COBRAR" ? "GASTO" : "INGRESO",
+            fecha: new Date(),
+            esRecurrente: false,
             usuarioId: usuario.id,
-            empresaId: input.empresaId,
-            cuotas: cuotas ? { create: cuotas } : undefined,
+            categoriaId: input.categoriaId,
           },
         });
+      }
 
-        // Solo crear transacción si tiene categoría Y no tiene cuotas
-        if (input.categoriaId && !input.tieneCuotas) {
-          const descripcion = input.tipo === "COBRAR"
-            ? `Préstamo a ${input.contraparte.trim()}`
-            : `Deuda con ${input.contraparte.trim()}`;
-
-          await tx.transaccion.create({
-            data: {
-              monto: input.montoTotal,
-              descripcion,
-              tipo: input.tipo === "COBRAR" ? "GASTO" : "INGRESO",
-              fecha: new Date(),
-              esRecurrente: false,
-              usuarioId: usuario.id,
-              categoriaId: input.categoriaId,
-            },
-          });
-        }
-
-        return deuda;
-      });
+      return deuda;
+    });
 
     revalidatePath("/deudas");
     revalidatePath("/transacciones");
     revalidatePath("/dashboard");
-    return { success: true, data: { id: "" } }; // el id no lo necesitás afuera
+    return { success: true, data: { id: deuda.id } };
   } catch (error) {
     console.error("[crearDeuda]", error);
     return { success: false, error: "No se pudo crear la deuda." };
@@ -132,6 +123,11 @@ export async function registrarPagoDeuda(
     if (!deuda) return { success: false, error: "Deuda no encontrada." };
     if (deuda.estado === "PAGADA") return { success: false, error: "La deuda ya está pagada." };
     if (monto <= 0) return { success: false, error: "El monto debe ser mayor a cero." };
+
+    if (categoriaId) {
+      const categoria = await prisma.categoria.findFirst({ where: { id: categoriaId, usuarioId: usuario.id } });
+      if (!categoria) return { success: false, error: "Categoría no encontrada." };
+    }
 
     const montoTotalNum  = toNumber(deuda.montoTotal);
     const montoPagadoNum = toNumber(deuda.montoPagado);
@@ -253,6 +249,11 @@ export async function actualizarDeuda(input: {
   try {
     const usuario = await getCurrentUser();
 
+    if (input.empresaId !== undefined) {
+      const empresa = await prisma.empresa.findFirst({ where: { id: input.empresaId, usuarioId: usuario.id } });
+      if (!empresa) return { success: false, error: "Empresa no encontrada." };
+    }
+
     await prisma.deuda.updateMany({
       where: { id: input.id, usuarioId: usuario.id },
       data: {
@@ -284,6 +285,11 @@ export async function marcarDeudaPagada(
 
     const deuda = await prisma.deuda.findFirst({ where: { id, usuarioId: usuario.id } });
     if (!deuda) return { success: false, error: "Deuda no encontrada." };
+
+    if (categoriaId) {
+      const categoria = await prisma.categoria.findFirst({ where: { id: categoriaId, usuarioId: usuario.id } });
+      if (!categoria) return { success: false, error: "Categoría no encontrada." };
+    }
 
     const montoRestante = toNumber(deuda.montoTotal) - toNumber(deuda.montoPagado);
 
@@ -375,6 +381,11 @@ export async function marcarCuotaPagada(
       include: { cuotas: true },
     });
     if (!deuda) return { success: false, error: "Deuda no encontrada." };
+
+    if (categoriaId) {
+      const categoria = await prisma.categoria.findFirst({ where: { id: categoriaId, usuarioId: usuario.id } });
+      if (!categoria) return { success: false, error: "Categoría no encontrada." };
+    }
 
     const cuota = deuda.cuotas.find((c) => c.id === cuotaId);
     if (!cuota || cuota.pagada) return { success: false, error: "Cuota no válida." };
