@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
 import { getCategoriesWithStats } from "@/features/categories/queries";
+import { getCachedPresupuestos } from "@/features/presupuestos/queries";
 import { CategoryGrid } from "@/features/categories/category-grid";
 import { AddCategoryButton } from "@/features/categories/add-category-button";
 
@@ -9,7 +10,10 @@ export const metadata: Metadata = { title: "Categorías" };
 
 export default async function CategoriesPage() {
   const usuario = await getCurrentUser();
-  const categorias = await getCategoriesWithStats(usuario.id);
+  const [categorias, presupuestos] = await Promise.all([
+    getCategoriesWithStats(usuario.id),
+    getCachedPresupuestos(usuario.id),
+  ]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -22,7 +26,7 @@ export default async function CategoriesPage() {
         </div>
         <AddCategoryButton categoriasExistentes={categorias} />
       </div>
-      <CategoryGrid categories={categorias} moneda={usuario.moneda} />
+      <CategoryGrid categories={categorias} presupuestos={presupuestos} moneda={usuario.moneda} />
     </div>
   );
 }

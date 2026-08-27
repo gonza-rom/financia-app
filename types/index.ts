@@ -21,6 +21,7 @@ export type TransaccionConCategoria = Omit<Transaccion, 'monto'> & {
 export type CategoriaConEstadisticas = Categoria & {
   _count: { transacciones: number; subcategorias: number };
   montoTotal: number;
+  presupuestoMonto: number | null;
 };
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────

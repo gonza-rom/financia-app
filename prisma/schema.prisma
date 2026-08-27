@@ -31,8 +31,9 @@ model Usuario {
   categorias    Categoria[]
   vehiculos     Vehiculo[]
   empresas  Empresa[]
-  deudas        Deuda[] 
+  deudas        Deuda[]
   cuentas       Cuenta[]
+  presupuestos  Presupuesto[]
 
   @@map("usuarios")
 }
@@ -51,11 +52,26 @@ model Categoria {
   parent        Categoria?      @relation("Subcategorias", fields: [parentId], references: [id], onDelete: SetNull)
   subcategorias Categoria[]     @relation("Subcategorias")
   transacciones Transaccion[]
+  presupuesto   Presupuesto?
 
   @@index([usuarioId])
   @@index([usuarioId, tipo])
   @@index([parentId])
   @@map("categorias")
+}
+
+model Presupuesto {
+  id            String    @id @default(cuid())
+  monto         Decimal   @db.Decimal(12, 2)
+  categoriaId   String    @unique @map("categoria_id")
+  usuarioId     String    @map("usuario_id")
+  creadoEn      DateTime  @default(now()) @map("creado_en")
+  actualizadoEn DateTime  @updatedAt @map("actualizado_en")
+  categoria     Categoria @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
+  usuario       Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@map("presupuestos")
 }
 
 model Transaccion {
