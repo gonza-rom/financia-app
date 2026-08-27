@@ -7,7 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { FormularioCategoria } from "@/types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { CategoriaConEstadisticas, FormularioCategoria } from "@/types";
 import { TipoTransaccion } from "@prisma/client";
 import { createCategoryAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
@@ -22,9 +23,10 @@ const COLORES_PRESET = [
 interface CategoriaDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  categoriasExistentes: CategoriaConEstadisticas[];
 }
 
-export function CategoriaDialog({ open, onOpenChange }: CategoriaDialogProps) {
+export function CategoriaDialog({ open, onOpenChange, categoriasExistentes }: CategoriaDialogProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -33,11 +35,17 @@ export function CategoriaDialog({ open, onOpenChange }: CategoriaDialogProps) {
       tipo: TipoTransaccion.GASTO,
       color: "#3b82f6",
       icono: "circle",
+      parentId: undefined,
     },
   });
 
   const colorSeleccionado = watch("color");
   const tipoSeleccionado = watch("tipo");
+  const parentId = watch("parentId");
+
+  // Solo categorías de nivel superior, del mismo tipo, pueden ser "padre" — así el árbol
+  // nunca pasa de 2 niveles (categoría -> subcategoría).
+  const posiblesPadres = categoriasExistentes.filter((c) => !c.parentId && c.tipo === tipoSeleccionado);
 
   function onSubmit(data: FormularioCategoria) {
     startTransition(async () => {
@@ -66,7 +74,7 @@ export function CategoriaDialog({ open, onOpenChange }: CategoriaDialogProps) {
               <button
                 key={t}
                 type="button"
-                onClick={() => setValue("tipo", t)}
+                onClick={() => { setValue("tipo", t); setValue("parentId", undefined); }}
                 className={cn(
                   "flex-1 py-2 text-sm font-medium transition-colors",
                   tipoSeleccionado === t
@@ -89,6 +97,28 @@ export function CategoriaDialog({ open, onOpenChange }: CategoriaDialogProps) {
               {...register("nombre", { required: true })}
             />
           </div>
+
+          {posiblesPadres.length > 0 && (
+            <div className="space-y-2">
+              <Label>
+                Categoría padre <span className="text-muted-foreground font-normal">(opcional)</span>
+              </Label>
+              <Select
+                value={parentId ?? "ninguna"}
+                onValueChange={(v) => setValue("parentId", v === "ninguna" ? undefined : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Es una categoría de nivel superior" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ninguna">Ninguna — categoría de nivel superior</SelectItem>
+                  {posiblesPadres.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Color</Label>

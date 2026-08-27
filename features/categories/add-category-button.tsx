@@ -5,8 +5,9 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CategoriaDialog } from "./category-dialog";
+import type { CategoriaConEstadisticas } from "@/types";
 
-export function AddCategoryButton() {
+export function AddCategoryButton({ categoriasExistentes }: { categoriasExistentes: CategoriaConEstadisticas[] }) {
   const [abierto, setAbierto] = useState(false);
 
   return (
@@ -15,7 +16,7 @@ export function AddCategoryButton() {
         <Plus className="size-4" />
         Nueva categoría
       </Button>
-      <CategoriaDialog open={abierto} onOpenChange={setAbierto} />
+      <CategoriaDialog open={abierto} onOpenChange={setAbierto} categoriasExistentes={categoriasExistentes} />
     </>
   );
 }

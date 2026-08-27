@@ -9,7 +9,7 @@ export const getCachedCategorias = unstable_cache(
     const [categorias, totales] = await Promise.all([
       prisma.categoria.findMany({
         where: { usuarioId },
-        include: { _count: { select: { transacciones: true } } },
+        include: { _count: { select: { transacciones: true, subcategorias: true } } },
         orderBy: { nombre: "asc" },
       }),
       prisma.transaccion.groupBy({

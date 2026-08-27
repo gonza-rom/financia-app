@@ -13,6 +13,7 @@ import { createTransactionAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { parseFechaLocal, formatFechaInput } from "@/lib/utils-fecha";
+import { CategoriaSelectItems } from "@/features/categories/categoria-select-items";
 
 type CuentaSimple = {
   id: string;
@@ -36,7 +37,6 @@ export function TransactionDialog({ categorias, cuentas, open, onOpenChange }: T
     defaultValues: {
       tipo: TipoTransaccion.GASTO,
       fecha: new Date(),
-      esRecurrente: false,
       cuentaId: undefined,
     },
   });
@@ -105,14 +105,7 @@ export function TransactionDialog({ categorias, cuentas, open, onOpenChange }: T
                 {categoriasFiltradas.length === 0 ? (
                   <div className="px-3 py-2 text-xs text-muted-foreground">Sin categorías para este tipo</div>
                 ) : (
-                  categoriasFiltradas.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      <div className="flex items-center gap-2">
-                        <div className="size-2 rounded-full" style={{ backgroundColor: cat.color }} />
-                        {cat.nombre}
-                      </div>
-                    </SelectItem>
-                  ))
+                  <CategoriaSelectItems categorias={categoriasFiltradas} />
                 )}
               </SelectContent>
             </Select>

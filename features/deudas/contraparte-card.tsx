@@ -32,6 +32,7 @@ import { DeudaFormDialog } from "@/features/deudas/deuda-form-dialog";
 import { PagoDialog } from "@/features/deudas/pago-dialog";
 import type { Deuda, EstadoDeuda } from "@/types/deudas";
 import type { Categoria } from "@/types";
+import { CategoriaSelectItems } from "@/features/categories/categoria-select-items";
 
 // ─── Config de estados ────────────────────────────────────────────────────────
 
@@ -137,14 +138,7 @@ function MarcarPagadaDialog({ deuda, categorias, open, onOpenChange }: MarcarPag
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ninguna">Sin categoría</SelectItem>
-                  {categoriasRelevantes.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      <div className="flex items-center gap-2">
-                        <div className="size-2 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
-                        {cat.nombre}
-                      </div>
-                    </SelectItem>
-                  ))}
+                  <CategoriaSelectItems categorias={categoriasRelevantes} />
                 </SelectContent>
               </Select>
             )}
@@ -239,14 +233,7 @@ function PagarCuotaDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ninguna">Sin categoría</SelectItem>
-                  {categoriasRelevantes.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      <div className="flex items-center gap-2">
-                        <div className="size-2 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
-                        {cat.nombre}
-                      </div>
-                    </SelectItem>
-                  ))}
+                  <CategoriaSelectItems categorias={categoriasRelevantes} />
                 </SelectContent>
               </Select>
             )}

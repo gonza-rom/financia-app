@@ -95,11 +95,6 @@ export function TransactionList({
                         {cuenta.nombre}
                       </span>
                     )}
-                    {tx.esRecurrente && (
-                      <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 bg-primary/10 text-primary rounded text-[10px] font-medium">
-                        Recurrente
-                      </span>
-                    )}
                   </p>
                 </div>
                 <span className={cn(

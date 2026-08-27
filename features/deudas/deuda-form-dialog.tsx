@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { crearDeuda } from "./actions";
 import type { Categoria } from "@/types";
+import { CategoriaSelectItems } from "@/features/categories/categoria-select-items";
 
 type TipoDeuda = "cobrar" | "pagar";
 type Moneda = "ARS" | "USD" | "EUR";
@@ -292,17 +293,7 @@ export function DeudaFormDialog({
                     <SelectItem value="ninguna">
                       Sin categoría (no registra transacción)
                     </SelectItem>
-                    {categoriasRelevantes.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="size-2 rounded-full shrink-0"
-                            style={{ backgroundColor: cat.color }}
-                          />
-                          {cat.nombre}
-                        </div>
-                      </SelectItem>
-                    ))}
+                    <CategoriaSelectItems categorias={categoriasRelevantes} />
                   </SelectContent>
                 </Select>
                 {form.categoriaId && form.montoTotal > 0 && (

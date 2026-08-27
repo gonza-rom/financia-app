@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { FormularioCategoria, CategoriaConEstadisticas } from "@/types";
 import { updateCategoryAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
@@ -20,11 +21,12 @@ const COLORES_PRESET = [
 
 interface EditarCategoriaDialogProps {
   categoria: CategoriaConEstadisticas;
+  categoriasExistentes: CategoriaConEstadisticas[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function EditCategoryDialog({ categoria, open, onOpenChange }: EditarCategoriaDialogProps) {
+export function EditCategoryDialog({ categoria, categoriasExistentes, open, onOpenChange }: EditarCategoriaDialogProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -34,10 +36,18 @@ export function EditCategoryDialog({ categoria, open, onOpenChange }: EditarCate
       color: categoria.color,
       icono: categoria.icono,
       tipo: categoria.tipo,
+      parentId: categoria.parentId ?? undefined,
     },
   });
 
   const colorSeleccionado = watch("color");
+  const parentId = watch("parentId");
+
+  // Ya es padre de otras -> no puede pasar a ser subcategoría (mantiene el árbol a 2 niveles).
+  const puedeElegirPadre = categoria._count.subcategorias === 0;
+  const posiblesPadres = categoriasExistentes.filter(
+    (c) => !c.parentId && c.tipo === categoria.tipo && c.id !== categoria.id
+  );
 
   function onSubmit(data: FormularioCategoria) {
     startTransition(async () => {
@@ -67,6 +77,33 @@ export function EditCategoryDialog({ categoria, open, onOpenChange }: EditarCate
               {...register("nombre", { required: true })}
             />
           </div>
+
+          {puedeElegirPadre && posiblesPadres.length > 0 && (
+            <div className="space-y-2">
+              <Label>
+                Categoría padre <span className="text-muted-foreground font-normal">(opcional)</span>
+              </Label>
+              <Select
+                value={parentId ?? "ninguna"}
+                onValueChange={(v) => setValue("parentId", v === "ninguna" ? undefined : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Es una categoría de nivel superior" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ninguna">Ninguna — categoría de nivel superior</SelectItem>
+                  {posiblesPadres.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {!puedeElegirPadre && (
+            <p className="text-xs text-muted-foreground">
+              Esta categoría tiene subcategorías propias, así que no puede pasar a ser subcategoría de otra.
+            </p>
+          )}
 
           <div className="space-y-2">
             <Label>Color</Label>

@@ -28,7 +28,7 @@ export async function createTransactionAction(
           tipo: data.tipo,
           fecha: data.fecha,
           categoriaId: data.categoriaId,
-          esRecurrente: data.esRecurrente,
+          esRecurrente: false,
           notas: data.notas ?? null,
           usuarioId: usuario.id,
           cuentaId: data.cuentaId ?? null,
