@@ -7,7 +7,7 @@ process.env.TZ = "America/Argentina/Buenos_Aires";
 
 import {
   getMonthRange, getPreviousMonthRange, calculatePercentageChange,
-  getInitials, slugify, formatDate, formatShortDate,
+  getInitials, slugify, formatDate, formatShortDate, getProximoCierre,
 } from "./utils";
 
 describe("getMonthRange", () => {
@@ -96,5 +96,38 @@ describe("formatDate / formatShortDate — anclaje a fecha local", () => {
 
   it("formatDate tampoco corre de día con un string yyyy-MM-dd", () => {
     expect(formatDate("2026-05-28")).toContain("28");
+  });
+});
+
+describe("getProximoCierre", () => {
+  it("devuelve el cierre de este mes si todavía no pasó", () => {
+    const cierre = getProximoCierre(10, new Date(2026, 4, 5)); // 5 de mayo, cierre el 10
+    expect(cierre.getDate()).toBe(10);
+    expect(cierre.getMonth()).toBe(4);
+  });
+
+  it("el día del cierre en sí mismo todavía cuenta como \"no pasó\"", () => {
+    const cierre = getProximoCierre(10, new Date(2026, 4, 10));
+    expect(cierre.getMonth()).toBe(4);
+    expect(cierre.getDate()).toBe(10);
+  });
+
+  it("pasa al mes siguiente si ya pasó el cierre de este mes", () => {
+    const cierre = getProximoCierre(10, new Date(2026, 4, 15));
+    expect(cierre.getMonth()).toBe(5); // junio
+    expect(cierre.getDate()).toBe(10);
+  });
+
+  it("recorta al último día del mes si el día de cierre no existe (ej. 31 en febrero)", () => {
+    const cierre = getProximoCierre(31, new Date(2026, 1, 15)); // 15 de febrero 2026 (no bisiesto, 28 días)
+    expect(cierre.getMonth()).toBe(1);
+    expect(cierre.getDate()).toBe(28);
+  });
+
+  it("cruza de diciembre a enero del año siguiente", () => {
+    const cierre = getProximoCierre(10, new Date(2026, 11, 20));
+    expect(cierre.getFullYear()).toBe(2027);
+    expect(cierre.getMonth()).toBe(0);
+    expect(cierre.getDate()).toBe(10);
   });
 });

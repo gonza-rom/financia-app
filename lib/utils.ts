@@ -69,6 +69,22 @@ export function slugify(text: string): string {
   return text.toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]+/g, "");
 }
 
+// Próxima fecha (hoy inclusive) en la que cae el día de cierre de tarjeta.
+// Si el mes no tiene ese día (ej. cierre 31 y estamos en febrero), usa el último día del mes.
+export function getProximoCierre(diaCierre: number, desde: Date = new Date()): Date {
+  const anio = desde.getFullYear();
+  const mes = desde.getMonth();
+  const ultimoDiaEsteMes = new Date(anio, mes + 1, 0).getDate();
+  const cierreEsteMes = new Date(anio, mes, Math.min(diaCierre, ultimoDiaEsteMes));
+
+  if (desde.getDate() <= cierreEsteMes.getDate()) {
+    return cierreEsteMes;
+  }
+
+  const ultimoDiaProximoMes = new Date(anio, mes + 2, 0).getDate();
+  return new Date(anio, mes + 1, Math.min(diaCierre, ultimoDiaProximoMes));
+}
+
 export const MESES = [
   "Ene", "Feb", "Mar", "Abr", "May", "Jun",
   "Jul", "Ago", "Sep", "Oct", "Nov", "Dic",

@@ -21,6 +21,7 @@ import { MONEDAS } from "@/lib/monedas";
 interface FormularioPerfil {
   nombre: string;
   moneda: string;
+  diaCierreTarjeta: number;
 }
 
 export function ProfileForm({ user }: { user: Usuario }) {
@@ -31,6 +32,7 @@ export function ProfileForm({ user }: { user: Usuario }) {
     defaultValues: {
       nombre: user.nombre ?? "",
       moneda: user.moneda,
+      diaCierreTarjeta: user.diaCierreTarjeta,
     },
   });
 
@@ -72,6 +74,20 @@ export function ProfileForm({ user }: { user: Usuario }) {
         </Select>
         <p className="text-xs text-muted-foreground">
           Cambia solo el símbolo con el que se muestran los montos — no convierte lo que ya cargaste.
+        </p>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="diaCierreTarjeta">Día de cierre de tarjeta</Label>
+        <Input
+          id="diaCierreTarjeta"
+          type="number"
+          min={1}
+          max={31}
+          className="w-24"
+          {...register("diaCierreTarjeta", { valueAsNumber: true, min: 1, max: 31 })}
+        />
+        <p className="text-xs text-muted-foreground">
+          Se usa en Deudas para calcular cuánto debés pagar antes del próximo cierre.
         </p>
       </div>
       <Button type="submit" disabled={isPending}>
