@@ -1,9 +1,14 @@
 // prisma/seed.ts
 // Uso: SEED_USER_ID=8bd3bde4-2883-40a2-b276-e5ea95268b97 npx tsx prisma/seed.ts
 
-import { PrismaClient, TipoTransaccion } from "@prisma/client";
+import dotenv from "dotenv";
+dotenv.config({ path: ".env.local" });
 
-const prisma = new PrismaClient();
+import { PrismaClient, TipoTransaccion } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+const prisma = new PrismaClient({ adapter });
 
 const CATEGORIAS_GASTO = [
   { nombre: "Vivienda",         color: "#3b82f6", icono: "home" },

@@ -15,6 +15,7 @@ import type { FormularioGastoVehiculo, SeccionConGastos } from "@/types/vehiculo
 import { crearGastoVehiculoAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
 import { parseFechaLocal, formatFechaInput } from "@/lib/utils-fecha";
+import { CategoriaSelectItems } from "@/features/categories/categoria-select-items";
 
 interface GastoDialogProps {
   vehiculoId: string;
@@ -187,14 +188,7 @@ export function GastoDialog({ vehiculoId, seccion, categorias, open, onOpenChang
                     <SelectValue placeholder="Seleccioná una categoría" />
                   </SelectTrigger>
                   <SelectContent>
-                    {categoriasGasto.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        <div className="flex items-center gap-2">
-                          <div className="size-2 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
-                          {cat.nombre}
-                        </div>
-                      </SelectItem>
-                    ))}
+                    <CategoriaSelectItems categorias={categoriasGasto} />
                   </SelectContent>
                 </Select>
               )}

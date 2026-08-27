@@ -13,6 +13,7 @@ import type { Categoria, FormularioTransaccion, TransaccionConCategoria } from "
 import { updateTransactionAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
 import { parseFechaLocal, formatFechaInput } from "@/lib/utils-fecha";
+import { CategoriaSelectItems } from "@/features/categories/categoria-select-items";
 
 type CuentaSimple = {
   id: string;
@@ -47,7 +48,6 @@ export function EditTransactionDialog({
       fecha: transaccion.fecha,
       categoriaId: transaccion.categoriaId,
       notas: transaccion.notas ?? "",
-      esRecurrente: transaccion.esRecurrente,
       cuentaId: transaccion.cuentaId ?? undefined,
     },
   });
@@ -103,14 +103,7 @@ export function EditTransactionDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {categoriasFiltradas.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id}>
-                    <div className="flex items-center gap-2">
-                      <div className="size-2 rounded-full" style={{ backgroundColor: cat.color }} />
-                      {cat.nombre}
-                    </div>
-                  </SelectItem>
-                ))}
+                <CategoriaSelectItems categorias={categoriasFiltradas} />
               </SelectContent>
             </Select>
           </div>

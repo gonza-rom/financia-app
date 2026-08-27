@@ -7,12 +7,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { FormularioGastoEmpresa } from "@/types/empresas";
 import type { Categoria } from "@/types";
 import { crearGastoEmpresaAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
 import { parseFechaLocal, formatFechaInput } from "@/lib/utils-fecha";
+import { CategoriaSelectItems } from "@/features/categories/categoria-select-items";
 
 export function NuevoGastoEmpresaDialog({
   open, onOpenChange, empresaId, categorias, moneda,
@@ -96,9 +97,7 @@ export function NuevoGastoEmpresaDialog({
                 <SelectValue placeholder="Categoría de gasto personal" />
               </SelectTrigger>
               <SelectContent>
-                {categorias.filter((c) => c.tipo === "GASTO").map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>
-                ))}
+                <CategoriaSelectItems categorias={categorias.filter((c) => c.tipo === "GASTO")} />
               </SelectContent>
             </Select>
           )}

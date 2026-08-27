@@ -20,7 +20,7 @@ export default async function CategoriesPage() {
             Organizá tus transacciones
           </p>
         </div>
-        <AddCategoryButton />
+        <AddCategoryButton categoriasExistentes={categorias} />
       </div>
       <CategoryGrid categories={categorias} moneda={usuario.moneda} />
     </div>

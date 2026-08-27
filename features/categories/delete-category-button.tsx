@@ -10,9 +10,10 @@ import { useToast } from "@/hooks/use-toast";
 interface DeleteCategoryButtonProps {
   id: string;
   cantidadTransacciones: number;
+  cantidadSubcategorias?: number;
 }
 
-export function DeleteCategoryButton({ id, cantidadTransacciones }: DeleteCategoryButtonProps) {
+export function DeleteCategoryButton({ id, cantidadTransacciones, cantidadSubcategorias = 0 }: DeleteCategoryButtonProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -22,6 +23,14 @@ export function DeleteCategoryButton({ id, cantidadTransacciones }: DeleteCatego
         variant: "destructive",
         title: "No se puede eliminar",
         description: `Esta categoría tiene ${cantidadTransacciones} transacción${cantidadTransacciones !== 1 ? "es" : ""}. Reasignala primero.`,
+      });
+      return;
+    }
+    if (cantidadSubcategorias > 0) {
+      toast({
+        variant: "destructive",
+        title: "No se puede eliminar",
+        description: `Esta categoría tiene ${cantidadSubcategorias} subcategoría${cantidadSubcategorias !== 1 ? "s" : ""}. Movelas o eliminalas primero.`,
       });
       return;
     }

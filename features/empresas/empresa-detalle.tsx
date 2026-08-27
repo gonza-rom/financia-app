@@ -28,6 +28,7 @@ import { EditarProyectoDialog } from "./editar-proyecto-dialog";
 import { EditarClienteDialog } from "./editar-cliente-dialog";
 import { EditarCobroDialog } from "./editar-cobro-dialog";
 import { EditarGastoEmpresaDialog } from "./editar-gasto-empresa-dialog";
+import { CategoriaSelectItems } from "@/features/categories/categoria-select-items";
 
 const ESTADO_COLORS: Record<string, string> = {
   ACTIVO:     "bg-income/10 text-income",
@@ -134,7 +135,7 @@ function ConfirmarCobroDialog({
   const [categoriaId, setCategoriaId] = useState(categorias.find((c) => c.tipo === "INGRESO")?.id ?? "");
   const { toast } = useToast();
   const { Dialog, DialogContent, DialogHeader, DialogTitle } = require("@/components/ui/dialog");
-  const { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } = require("@/components/ui/select");
+  const { Select, SelectContent, SelectTrigger, SelectValue } = require("@/components/ui/select");
 
   function handleConfirmar() {
     startTransition(async () => {
@@ -162,9 +163,7 @@ function ConfirmarCobroDialog({
             <Select value={categoriaId} onValueChange={setCategoriaId}>
               <SelectTrigger><SelectValue placeholder="Categoría de ingreso" /></SelectTrigger>
               <SelectContent>
-                {categorias.filter((c) => c.tipo === "INGRESO").map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>
-                ))}
+                <CategoriaSelectItems categorias={categorias.filter((c) => c.tipo === "INGRESO")} />
               </SelectContent>
             </Select>
           )}

@@ -19,7 +19,7 @@ export type TransaccionConCategoria = Omit<Transaccion, 'monto'> & {
 };
 
 export type CategoriaConEstadisticas = Categoria & {
-  _count: { transacciones: number };
+  _count: { transacciones: number; subcategorias: number };
   montoTotal: number;
 };
 
@@ -62,7 +62,6 @@ export interface FormularioTransaccion {
   tipo: TipoTransaccion;
   fecha: Date;
   categoriaId: string;
-  esRecurrente: boolean;
   notas?: string;
   cuentaId?: string;
 }
@@ -72,6 +71,7 @@ export interface FormularioCategoria {
   icono: string;
   color: string;
   tipo: TipoTransaccion;
+  parentId?: string | null;
 }
 
 // ─── Resultados de acciones ───────────────────────────────────────────────────

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
+import { CategoriaSelectItems } from "@/features/categories/categoria-select-items";
 
 interface TransactionFiltersBarProps {
   categorias: Categoria[];
@@ -57,9 +58,7 @@ export function TransactionFiltersBar({ categorias }: TransactionFiltersBarProps
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="todas">Todas las categorías</SelectItem>
-          {categorias.map((cat) => (
-            <SelectItem key={cat.id} value={cat.id}>{cat.nombre}</SelectItem>
-          ))}
+          <CategoriaSelectItems categorias={categorias} />
         </SelectContent>
       </Select>
 

@@ -43,13 +43,17 @@ model Categoria {
   color         String          @default("#6b7280")
   tipo          TipoTransaccion
   usuarioId     String          @map("usuario_id")
+  parentId      String?         @map("parent_id")
   creadoEn      DateTime        @default(now()) @map("creado_en")
   actualizadoEn DateTime        @updatedAt @map("actualizado_en")
   usuario       Usuario         @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  parent        Categoria?      @relation("Subcategorias", fields: [parentId], references: [id], onDelete: SetNull)
+  subcategorias Categoria[]     @relation("Subcategorias")
   transacciones Transaccion[]
 
   @@index([usuarioId])
   @@index([usuarioId, tipo])
+  @@index([parentId])
   @@map("categorias")
 }
 

@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { registrarPagoDeuda } from "./actions";
 import type { Deuda } from "@/types/deudas";
 import type { Categoria } from "@/types";
+import { CategoriaSelectItems } from "@/features/categories/categoria-select-items";
 
 function fmt(n: number, moneda: string) {
   return new Intl.NumberFormat("es-AR", {
@@ -196,14 +197,7 @@ export function PagoDialog({ deuda, categorias = [], open, onOpenChange }: PagoD
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ninguna">Sin categoría (no registra transacción)</SelectItem>
-                  {categoriasRelevantes.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      <div className="flex items-center gap-2">
-                        <div className="size-2 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
-                        {cat.nombre}
-                      </div>
-                    </SelectItem>
-                  ))}
+                  <CategoriaSelectItems categorias={categoriasRelevantes} />
                 </SelectContent>
               </Select>
             )}
