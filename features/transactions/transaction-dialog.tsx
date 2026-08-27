@@ -13,7 +13,7 @@ import { createTransactionAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { parseFechaLocal, formatFechaInput } from "@/lib/utils-fecha";
-import { CategoriaSelectItems } from "@/features/categories/categoria-select-items";
+import { CategoriaCombobox } from "@/features/categories/categoria-combobox";
 
 type CuentaSimple = {
   id: string;
@@ -42,6 +42,7 @@ export function TransactionDialog({ categorias, cuentas, open, onOpenChange }: T
   });
 
   const tipoSeleccionado = watch("tipo");
+  const categoriaId = watch("categoriaId");
   const categoriasFiltradas = categorias.filter((c) => c.tipo === tipoSeleccionado);
 
   function onSubmit(data: FormularioTransaccion) {
@@ -67,7 +68,7 @@ export function TransactionDialog({ categorias, cuentas, open, onOpenChange }: T
           {/* Tipo */}
           <div className="flex rounded-lg border border-border overflow-hidden">
             {[TipoTransaccion.GASTO, TipoTransaccion.INGRESO].map((t) => (
-              <button key={t} type="button" onClick={() => setValue("tipo", t)}
+              <button key={t} type="button" onClick={() => { setValue("tipo", t); setValue("categoriaId", ""); }}
                 className={cn("flex-1 py-2 text-sm font-medium transition-colors",
                   tipoSeleccionado === t
                     ? t === TipoTransaccion.INGRESO ? "bg-income/10 text-income" : "bg-expense/10 text-expense"
@@ -97,18 +98,14 @@ export function TransactionDialog({ categorias, cuentas, open, onOpenChange }: T
           {/* Categoría */}
           <div className="space-y-2">
             <Label>Categoría</Label>
-            <Select onValueChange={(v) => setValue("categoriaId", v)}>
-              <SelectTrigger className={errors.categoriaId ? "border-destructive" : ""}>
-                <SelectValue placeholder="Seleccionar categoría" />
-              </SelectTrigger>
-              <SelectContent>
-                {categoriasFiltradas.length === 0 ? (
-                  <div className="px-3 py-2 text-xs text-muted-foreground">Sin categorías para este tipo</div>
-                ) : (
-                  <CategoriaSelectItems categorias={categoriasFiltradas} />
-                )}
-              </SelectContent>
-            </Select>
+            <CategoriaCombobox
+              categorias={categoriasFiltradas}
+              value={categoriaId}
+              onChange={(id) => setValue("categoriaId", id)}
+              placeholder="Seleccionar categoría"
+              emptyMessage="Sin categorías para este tipo"
+              className={errors.categoriaId ? "border-destructive" : ""}
+            />
           </div>
 
           {/* Cuenta */}

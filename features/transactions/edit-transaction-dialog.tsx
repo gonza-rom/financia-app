@@ -13,7 +13,7 @@ import type { Categoria, FormularioTransaccion, TransaccionConCategoria } from "
 import { updateTransactionAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
 import { parseFechaLocal, formatFechaInput } from "@/lib/utils-fecha";
-import { CategoriaSelectItems } from "@/features/categories/categoria-select-items";
+import { CategoriaCombobox } from "@/features/categories/categoria-combobox";
 
 type CuentaSimple = {
   id: string;
@@ -40,7 +40,7 @@ export function EditTransactionDialog({
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
-  const { register, handleSubmit, setValue } = useForm<FormularioTransaccion>({
+  const { register, handleSubmit, setValue, watch } = useForm<FormularioTransaccion>({
     defaultValues: {
       monto: Number(transaccion.monto),
       descripcion: transaccion.descripcion,
@@ -52,6 +52,7 @@ export function EditTransactionDialog({
     },
   });
 
+  const categoriaId = watch("categoriaId");
   const categoriasFiltradas = categorias.filter((c) => c.tipo === transaccion.tipo);
 
   function onSubmit(data: FormularioTransaccion) {
@@ -95,17 +96,11 @@ export function EditTransactionDialog({
           {/* Categoría */}
           <div className="space-y-2">
             <Label>Categoría</Label>
-            <Select
-              defaultValue={transaccion.categoriaId}
-              onValueChange={(v) => setValue("categoriaId", v)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <CategoriaSelectItems categorias={categoriasFiltradas} />
-              </SelectContent>
-            </Select>
+            <CategoriaCombobox
+              categorias={categoriasFiltradas}
+              value={categoriaId}
+              onChange={(id) => setValue("categoriaId", id)}
+            />
           </div>
 
           {/* Cuenta */}
