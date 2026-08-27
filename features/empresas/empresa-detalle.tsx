@@ -28,7 +28,7 @@ import { EditarProyectoDialog } from "./editar-proyecto-dialog";
 import { EditarClienteDialog } from "./editar-cliente-dialog";
 import { EditarCobroDialog } from "./editar-cobro-dialog";
 import { EditarGastoEmpresaDialog } from "./editar-gasto-empresa-dialog";
-import { CategoriaSelectItems } from "@/features/categories/categoria-select-items";
+import { CategoriaCombobox } from "@/features/categories/categoria-combobox";
 
 const ESTADO_COLORS: Record<string, string> = {
   ACTIVO:     "bg-income/10 text-income",
@@ -135,7 +135,6 @@ function ConfirmarCobroDialog({
   const [categoriaId, setCategoriaId] = useState(categorias.find((c) => c.tipo === "INGRESO")?.id ?? "");
   const { toast } = useToast();
   const { Dialog, DialogContent, DialogHeader, DialogTitle } = require("@/components/ui/dialog");
-  const { Select, SelectContent, SelectTrigger, SelectValue } = require("@/components/ui/select");
 
   function handleConfirmar() {
     startTransition(async () => {
@@ -160,12 +159,12 @@ function ConfirmarCobroDialog({
             <label htmlFor="transferir" className="text-sm">Transferir a finanzas personales</label>
           </div>
           {transferir && (
-            <Select value={categoriaId} onValueChange={setCategoriaId}>
-              <SelectTrigger><SelectValue placeholder="Categoría de ingreso" /></SelectTrigger>
-              <SelectContent>
-                <CategoriaSelectItems categorias={categorias.filter((c) => c.tipo === "INGRESO")} />
-              </SelectContent>
-            </Select>
+            <CategoriaCombobox
+              categorias={categorias.filter((c) => c.tipo === "INGRESO")}
+              value={categoriaId}
+              onChange={setCategoriaId}
+              placeholder="Categoría de ingreso"
+            />
           )}
           <div className="flex gap-3">
             <Button variant="outline" className="flex-1" onClick={onClose}>Cancelar</Button>

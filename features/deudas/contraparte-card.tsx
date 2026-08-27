@@ -16,9 +16,6 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -32,7 +29,7 @@ import { DeudaFormDialog } from "@/features/deudas/deuda-form-dialog";
 import { PagoDialog } from "@/features/deudas/pago-dialog";
 import type { Deuda, EstadoDeuda } from "@/types/deudas";
 import type { Categoria } from "@/types";
-import { CategoriaSelectItems } from "@/features/categories/categoria-select-items";
+import { CategoriaCombobox } from "@/features/categories/categoria-combobox";
 
 // ─── Config de estados ────────────────────────────────────────────────────────
 
@@ -132,15 +129,13 @@ function MarcarPagadaDialog({ deuda, categorias, open, onOpenChange }: MarcarPag
                 Creá una categoría de {deuda.tipo === "cobrar" ? "ingreso" : "gasto"} para vincular el pago.
               </p>
             ) : (
-              <Select onValueChange={(v) => setCategoriaId(v === "ninguna" ? undefined : v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sin categoría (no registra transacción)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ninguna">Sin categoría</SelectItem>
-                  <CategoriaSelectItems categorias={categoriasRelevantes} />
-                </SelectContent>
-              </Select>
+              <CategoriaCombobox
+                categorias={categoriasRelevantes}
+                value={categoriaId}
+                onChange={(id) => setCategoriaId(id || undefined)}
+                allowNone
+                noneLabel="Sin categoría (no registra transacción)"
+              />
             )}
             {categoriaId && montoRestante > 0 && (
               <p className="text-xs text-muted-foreground">
@@ -227,15 +222,13 @@ function PagarCuotaDialog({
                 Creá una categoría de {deuda.tipo === "cobrar" ? "ingreso" : "gasto"} para vincular el pago.
               </p>
             ) : (
-              <Select onValueChange={(v) => setCategoriaId(v === "ninguna" ? undefined : v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sin categoría (no registra transacción)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ninguna">Sin categoría</SelectItem>
-                  <CategoriaSelectItems categorias={categoriasRelevantes} />
-                </SelectContent>
-              </Select>
+              <CategoriaCombobox
+                categorias={categoriasRelevantes}
+                value={categoriaId}
+                onChange={(id) => setCategoriaId(id || undefined)}
+                allowNone
+                noneLabel="Sin categoría (no registra transacción)"
+              />
             )}
             {categoriaId && cuota && (
               <p className="text-xs text-muted-foreground">

@@ -7,13 +7,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { FormularioGastoEmpresa } from "@/types/empresas";
 import type { Categoria } from "@/types";
 import { crearGastoEmpresaAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
 import { parseFechaLocal, formatFechaInput } from "@/lib/utils-fecha";
-import { CategoriaSelectItems } from "@/features/categories/categoria-select-items";
+import { CategoriaCombobox } from "@/features/categories/categoria-combobox";
 
 export function NuevoGastoEmpresaDialog({
   open, onOpenChange, empresaId, categorias, moneda,
@@ -92,14 +91,12 @@ export function NuevoGastoEmpresaDialog({
           </div>
 
           {transferir && (
-            <Select value={categoriaId} onValueChange={setCategoriaId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Categoría de gasto personal" />
-              </SelectTrigger>
-              <SelectContent>
-                <CategoriaSelectItems categorias={categorias.filter((c) => c.tipo === "GASTO")} />
-              </SelectContent>
-            </Select>
+            <CategoriaCombobox
+              categorias={categorias.filter((c) => c.tipo === "GASTO")}
+              value={categoriaId}
+              onChange={setCategoriaId}
+              placeholder="Categoría de gasto personal"
+            />
           )}
 
           <div className="flex gap-3 pt-1">

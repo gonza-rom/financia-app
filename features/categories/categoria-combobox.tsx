@@ -15,6 +15,9 @@ interface CategoriaComboboxProps<T extends CategoriaBase> {
   emptyMessage?: string;
   disabled?: boolean;
   className?: string;
+  /** Muestra una opción "sin categoría" al tope de la lista; seleccionarla llama onChange("") */
+  allowNone?: boolean;
+  noneLabel?: string;
 }
 
 // Selector de categoría con búsqueda — con 90+ categorías (padre + subcategorías) un
@@ -22,6 +25,7 @@ interface CategoriaComboboxProps<T extends CategoriaBase> {
 // mantiene el grupo padre visible mientras alguno de sus hijos matchee.
 export function CategoriaCombobox<T extends CategoriaBase>({
   categorias, value, onChange, placeholder = "Seleccionar categoría", emptyMessage = "Sin categorías", disabled, className,
+  allowNone = false, noneLabel = "Sin categoría",
 }: CategoriaComboboxProps<T>) {
   const [open, setOpen] = useState(false);
   const [busqueda, setBusqueda] = useState("");
@@ -62,6 +66,8 @@ export function CategoriaCombobox<T extends CategoriaBase>({
               <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: seleccionada.color }} />
               <span className="truncate">{seleccionada.nombre}</span>
             </span>
+          ) : allowNone ? (
+            <span className="truncate">{noneLabel}</span>
           ) : (
             <span className="text-muted-foreground">{placeholder}</span>
           )}
@@ -80,6 +86,19 @@ export function CategoriaCombobox<T extends CategoriaBase>({
           />
         </div>
         <div className="max-h-64 overflow-y-auto p-1">
+          {allowNone && (
+            <button
+              type="button"
+              onClick={() => seleccionar("")}
+              className={cn(
+                "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent transition-colors",
+                !value && "bg-accent"
+              )}
+            >
+              <span className="truncate flex-1 text-left">{noneLabel}</span>
+              {!value && <Check className="size-3.5 shrink-0" />}
+            </button>
+          )}
           {categorias.length === 0 ? (
             <p className="px-3 py-4 text-center text-xs text-muted-foreground">{emptyMessage}</p>
           ) : grupos.length === 0 ? (

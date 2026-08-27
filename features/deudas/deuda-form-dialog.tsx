@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { crearDeuda } from "./actions";
 import type { Categoria } from "@/types";
-import { CategoriaSelectItems } from "@/features/categories/categoria-select-items";
+import { CategoriaCombobox } from "@/features/categories/categoria-combobox";
 
 type TipoDeuda = "cobrar" | "pagar";
 type Moneda = "ARS" | "USD" | "EUR";
@@ -281,21 +281,14 @@ export function DeudaFormDialog({
               </p>
             ) : (
               <>
-                <Select
-                  value={form.categoriaId ?? "ninguna"}
-                  onValueChange={(v) => set("categoriaId", v === "ninguna" ? undefined : v)}
+                <CategoriaCombobox
+                  categorias={categoriasRelevantes}
+                  value={form.categoriaId}
+                  onChange={(id) => set("categoriaId", id || undefined)}
                   disabled={isPending}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sin categoría" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ninguna">
-                      Sin categoría (no registra transacción)
-                    </SelectItem>
-                    <CategoriaSelectItems categorias={categoriasRelevantes} />
-                  </SelectContent>
-                </Select>
+                  allowNone
+                  noneLabel="Sin categoría (no registra transacción)"
+                />
                 {form.categoriaId && form.montoTotal > 0 && (
                   <p className="text-xs text-muted-foreground">
                     Se registrará un {form.tipo === "cobrar" ? "gasto" : "ingreso"} de{" "}

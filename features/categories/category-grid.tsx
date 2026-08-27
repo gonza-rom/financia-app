@@ -4,11 +4,12 @@
 import type { CategoriaConEstadisticas } from "@/types";
 import { TipoTransaccion } from "@prisma/client";
 import { formatCurrency } from "@/lib/utils";
-import { Pencil, ChevronDown, ChevronUp } from "lucide-react";
+import { Pencil, ChevronDown, ChevronUp, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { DeleteCategoryButton } from "./delete-category-button";
 import { EditCategoryDialog } from "./edit-category-dialog";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { agruparPorPadre } from "@/lib/categorias";
 
@@ -81,15 +82,17 @@ function FilaCategoria({
 }
 
 function GrupoCategoria({
-  padre, hijos, moneda, onEditar,
+  padre, hijos, moneda, onEditar, expandidoForzado = false,
 }: {
   padre: CategoriaConEstadisticas;
   hijos: CategoriaConEstadisticas[];
   moneda: string;
   onEditar: (id: string) => void;
+  expandidoForzado?: boolean;
 }) {
-  const [expandido, setExpandido] = useState(false);
+  const [expandidoManual, setExpandidoManual] = useState(false);
   const tieneHijos = hijos.length > 0;
+  const expandido = expandidoForzado || expandidoManual;
 
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -99,7 +102,7 @@ function GrupoCategoria({
         onEditar={onEditar}
         expandible={tieneHijos}
         expandido={expandido}
-        onToggleExpandir={() => setExpandido((v) => !v)}
+        onToggleExpandir={() => setExpandidoManual((v) => !v)}
       />
       {tieneHijos && expandido && hijos.map((hijo) => (
         <FilaCategoria key={hijo.id} cat={hijo} moneda={moneda} onEditar={onEditar} subcategoria />
@@ -114,14 +117,30 @@ function SeccionCategorias({
   tipo,
   onEditar,
   moneda,
+  busqueda,
 }: {
   titulo: string;
   items: CategoriaConEstadisticas[];
   tipo: TipoTransaccion;
   onEditar: (id: string) => void;
   moneda: string;
+  busqueda: string;
 }) {
-  const grupos = agruparPorPadre(items);
+  const query = busqueda.trim().toLowerCase();
+
+  const grupos = useMemo(() => {
+    const base = agruparPorPadre(items);
+    if (!query) return base;
+    return base
+      .map(({ padre, hijos }) => ({
+        padre,
+        // Si el padre matchea, mostramos todas sus subcategorías; si no, solo las que matchean.
+        hijos: padre.nombre.toLowerCase().includes(query)
+          ? hijos
+          : hijos.filter((h) => h.nombre.toLowerCase().includes(query)),
+      }))
+      .filter(({ padre, hijos }) => padre.nombre.toLowerCase().includes(query) || hijos.length > 0);
+  }, [items, query]);
 
   return (
     <div>
@@ -141,11 +160,18 @@ function SeccionCategorias({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-start">
         {grupos.length === 0 && (
           <p className="text-sm text-muted-foreground col-span-full py-2">
-            Sin categorías todavía.
+            {query ? "Sin resultados." : "Sin categorías todavía."}
           </p>
         )}
         {grupos.map(({ padre, hijos }) => (
-          <GrupoCategoria key={padre.id} padre={padre} hijos={hijos} moneda={moneda} onEditar={onEditar} />
+          <GrupoCategoria
+            key={padre.id}
+            padre={padre}
+            hijos={hijos}
+            moneda={moneda}
+            onEditar={onEditar}
+            expandidoForzado={!!query}
+          />
         ))}
       </div>
     </div>
@@ -154,27 +180,42 @@ function SeccionCategorias({
 
 export function CategoryGrid({ categories, moneda }: CategoriaGridProps) {
   const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [busqueda, setBusqueda] = useState("");
 
   const ingresos = categories.filter((c) => c.tipo === TipoTransaccion.INGRESO);
   const gastos = categories.filter((c) => c.tipo === TipoTransaccion.GASTO);
   const categoriaEditando = categories.find((c) => c.id === editandoId);
 
   return (
-    <div className="space-y-8">
-      <SeccionCategorias
-        titulo="Ingresos"
-        items={ingresos}
-        tipo={TipoTransaccion.INGRESO}
-        onEditar={setEditandoId}
-        moneda={moneda}
-      />
-      <SeccionCategorias
-        titulo="Gastos"
-        items={gastos}
-        tipo={TipoTransaccion.GASTO}
-        onEditar={setEditandoId}
-        moneda={moneda}
-      />
+    <div className="space-y-6">
+      <div className="relative max-w-xs">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+        <Input
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          placeholder="Buscar categoría…"
+          className="pl-9"
+        />
+      </div>
+
+      <div className="space-y-8">
+        <SeccionCategorias
+          titulo="Ingresos"
+          items={ingresos}
+          tipo={TipoTransaccion.INGRESO}
+          onEditar={setEditandoId}
+          moneda={moneda}
+          busqueda={busqueda}
+        />
+        <SeccionCategorias
+          titulo="Gastos"
+          items={gastos}
+          tipo={TipoTransaccion.GASTO}
+          onEditar={setEditandoId}
+          moneda={moneda}
+          busqueda={busqueda}
+        />
+      </div>
 
       {categoriaEditando && (
         <EditCategoryDialog

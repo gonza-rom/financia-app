@@ -7,15 +7,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import type { Categoria } from "@/types";
 import type { FormularioGastoVehiculo, SeccionConGastos } from "@/types/vehiculos";
 import { crearGastoVehiculoAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
 import { parseFechaLocal, formatFechaInput } from "@/lib/utils-fecha";
-import { CategoriaSelectItems } from "@/features/categories/categoria-select-items";
+import { CategoriaCombobox } from "@/features/categories/categoria-combobox";
 
 interface GastoDialogProps {
   vehiculoId: string;
@@ -228,14 +225,12 @@ export function GastoDialog({ vehiculoId, seccion, categorias, open, onOpenChang
                   No tenés categorías de gasto. Creá una en la sección Categorías.
                 </p>
               ) : (
-                <Select onValueChange={(v) => setValue("categoriaId", v)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccioná una categoría" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <CategoriaSelectItems categorias={categoriasGasto} />
-                  </SelectContent>
-                </Select>
+                <CategoriaCombobox
+                  categorias={categoriasGasto}
+                  value={watch("categoriaId")}
+                  onChange={(id) => setValue("categoriaId", id)}
+                  placeholder="Seleccioná una categoría"
+                />
               )}
             </div>
           )}

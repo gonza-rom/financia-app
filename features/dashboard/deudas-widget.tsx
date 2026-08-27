@@ -13,17 +13,23 @@ interface DeudasWidgetProps {
   cuotasPagar: number;
   cantidadCuotasCobrar: number;
   cantidadCuotasPagar: number;
+  cuotasHastaCierre?: number;
+  fechaCierre?: Date;
   moneda: string;
 }
 
 export function DeudasWidget({
   porCobrar, porPagar, cantidadCobrar, cantidadPagar,
   cuotasCobrar, cuotasPagar, cantidadCuotasCobrar, cantidadCuotasPagar,
+  cuotasHastaCierre = 0, fechaCierre,
   moneda,
 }: DeudasWidgetProps) {
   const neto = porCobrar - porPagar;
   const hayDeudas = cantidadCobrar > 0 || cantidadPagar > 0;
   const hayCuotas = cantidadCuotasCobrar > 0 || cantidadCuotasPagar > 0;
+  const labelCierre = fechaCierre
+    ? new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "short" }).format(fechaCierre)
+    : null;
 
   if (!hayDeudas && !hayCuotas) return null;
 
@@ -79,12 +85,22 @@ export function DeudasWidget({
       {/* Cuotas — sección separada */}
       {hayCuotas && (
         <div className="rounded-lg border border-dashed border-border bg-muted/30 p-3 space-y-2">
-          <div className="flex items-center gap-2">
-            <Receipt className="size-3.5 text-muted-foreground" />
-            <span className="text-xs font-medium text-muted-foreground">Compromisos en cuotas</span>
-            <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
-              no afectan el balance
-            </span>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Receipt className="size-3.5 text-muted-foreground shrink-0" />
+              <span className="text-xs font-medium text-muted-foreground">Compromisos en cuotas</span>
+              <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                no afectan el balance
+              </span>
+            </div>
+            {cuotasHastaCierre > 0 && (
+              <div className="text-right shrink-0">
+                <p className="text-[10px] text-muted-foreground">
+                  {labelCierre ? `Antes del cierre (${labelCierre})` : "Este mes"}
+                </p>
+                <p className="text-sm font-semibold text-expense">{formatCurrency(cuotasHastaCierre, moneda)}</p>
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-3">
             {cantidadCuotasCobrar > 0 && (
