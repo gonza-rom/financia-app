@@ -1,6 +1,7 @@
 // features/vehiculos/seccion-card.tsx
 "use client";
 
+import Link from "next/link";
 import { eliminarSeccionAction } from "./actions";
 import { useState } from "react";
 import { useTransition } from "react";
@@ -153,6 +154,14 @@ export function SeccionCard({ vehiculoId, seccion, moneda,categorias }: SeccionC
                           <span className="text-xs text-muted-foreground">
                             · Próximo: {gasto.proximoKm.toLocaleString("es-AR")} km
                           </span>
+                        )}
+                        {gasto.deudaId && (
+                          <Link
+                            href="/deudas"
+                            className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-500 font-medium hover:bg-amber-500/20 transition-colors"
+                          >
+                            En cuotas
+                          </Link>
                         )}
                       </div>
                     </div>

@@ -24,14 +24,16 @@ model Usuario {
   email         String        @unique
   nombre        String?
   moneda        String        @default("ARS")
+  diaCierreTarjeta Int        @default(10) @map("dia_cierre_tarjeta")
   creadoEn      DateTime      @default(now()) @map("creado_en")
   actualizadoEn DateTime      @updatedAt @map("actualizado_en")
   transacciones Transaccion[]
   categorias    Categoria[]
   vehiculos     Vehiculo[]
   empresas  Empresa[]
-  deudas        Deuda[] 
+  deudas        Deuda[]
   cuentas       Cuenta[]
+  presupuestos  Presupuesto[]
 
   @@map("usuarios")
 }
@@ -50,11 +52,26 @@ model Categoria {
   parent        Categoria?      @relation("Subcategorias", fields: [parentId], references: [id], onDelete: SetNull)
   subcategorias Categoria[]     @relation("Subcategorias")
   transacciones Transaccion[]
+  presupuesto   Presupuesto?
 
   @@index([usuarioId])
   @@index([usuarioId, tipo])
   @@index([parentId])
   @@map("categorias")
+}
+
+model Presupuesto {
+  id            String    @id @default(cuid())
+  monto         Decimal   @db.Decimal(12, 2)
+  categoriaId   String    @unique @map("categoria_id")
+  usuarioId     String    @map("usuario_id")
+  creadoEn      DateTime  @default(now()) @map("creado_en")
+  actualizadoEn DateTime  @updatedAt @map("actualizado_en")
+  categoria     Categoria @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
+  usuario       Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@map("presupuestos")
 }
 
 model Transaccion {
@@ -116,6 +133,7 @@ model Vehiculo {
   usuario       Usuario             @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   secciones     SeccionVehiculo[]   // Nafta, Seguro, GNC, etc. — configurables
   gastos        GastoVehiculo[]
+  deudas        Deuda[]             // gastos pagados en cuotas (ej. service financiado)
 
   @@index([usuarioId])
   @@map("vehiculos")
@@ -153,11 +171,13 @@ model GastoVehiculo {
   vehiculoId     String          @map("vehiculo_id")
   seccionId      String          @map("seccion_id")
   transaccionId   String?         @unique @map("transaccion_id")  // ← campo FK
+  deudaId        String?         @unique @map("deuda_id")  // si se pagó en cuotas
   creadoEn       DateTime        @default(now()) @map("creado_en")
   actualizadoEn  DateTime        @updatedAt @map("actualizado_en")
   vehiculo       Vehiculo        @relation(fields: [vehiculoId], references: [id], onDelete: Cascade)
   seccion        SeccionVehiculo @relation(fields: [seccionId], references: [id], onDelete: Cascade)
   transaccion     Transaccion?    @relation(fields: [transaccionId], references: [id], onDelete: SetNull)
+  deuda          Deuda?          @relation(fields: [deudaId], references: [id], onDelete: SetNull)
 
   @@index([vehiculoId])
   @@index([seccionId])
@@ -306,10 +326,13 @@ model Deuda {
   fechaPago        DateTime?   @map("fecha_pago")
   usuarioId        String      @map("usuario_id")
   empresaId        String?     @map("empresa_id")
+  vehiculoId       String?     @map("vehiculo_id")
   creadoEn         DateTime    @default(now()) @map("creado_en")
   actualizadoEn    DateTime    @updatedAt @map("actualizado_en")
   usuario          Usuario     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   empresa          Empresa?    @relation(fields: [empresaId], references: [id], onDelete: SetNull)
+  vehiculo         Vehiculo?   @relation(fields: [vehiculoId], references: [id], onDelete: SetNull)
+  gastoVehiculo    GastoVehiculo?
   cuotas           CuotaDeuda[]
   montoPagado  Decimal     @default(0) @db.Decimal(12, 2) @map("monto_pagado")
   pagos        PagoDeuda[]
@@ -317,6 +340,7 @@ model Deuda {
   @@index([usuarioId])
   @@index([usuarioId, tipo])
   @@index([usuarioId, estado])
+  @@index([vehiculoId])
   @@map("deudas")
 }
 

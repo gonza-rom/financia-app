@@ -39,16 +39,16 @@ export function TablaCategorias({ categorias, moneda, tab }: TablaCategorias) {
 
   const maxMes = Math.max(...ordenadas.map((c) => c.montoMes));
 
-  function Th({ label, key }: { label: string; key: OrdenarPor }) {
+  function Th({ label, campo }: { label: string; campo: OrdenarPor }) {
     return (
       <th
         className={cn(
           "text-right text-xs font-medium text-muted-foreground pb-2 cursor-pointer hover:text-foreground transition-colors select-none",
-          ordenarPor === key && "text-foreground"
+          ordenarPor === campo && "text-foreground"
         )}
-        onClick={() => setOrdenarPor(key)}
+        onClick={() => setOrdenarPor(campo)}
       >
-        {label} {ordenarPor === key && "↓"}
+        {label} {ordenarPor === campo && "↓"}
       </th>
     );
   }
@@ -61,10 +61,10 @@ export function TablaCategorias({ categorias, moneda, tab }: TablaCategorias) {
             <th className="text-left text-xs font-medium text-muted-foreground pb-2 w-[35%]">
               Categoría
             </th>
-            <Th label="Este mes" key="montoMes" />
-            <Th label="Total histórico" key="montoTotal" />
-            <Th label="% del mes" key="porcentajeMes" />
-            <Th label="vs mes ant." key="cambio" />
+            <Th label="Este mes" campo="montoMes" />
+            <Th label="Total histórico" campo="montoTotal" />
+            <Th label="% del mes" campo="porcentajeMes" />
+            <Th label="vs mes ant." campo="cambio" />
           </tr>
         </thead>
         <tbody className="divide-y divide-border">

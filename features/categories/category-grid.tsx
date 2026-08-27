@@ -2,23 +2,49 @@
 "use client";
 
 import type { CategoriaConEstadisticas } from "@/types";
+import type { PresupuestoConProgreso } from "@/features/presupuestos/queries";
 import { TipoTransaccion } from "@prisma/client";
 import { formatCurrency } from "@/lib/utils";
-import { Pencil, ChevronDown, ChevronUp } from "lucide-react";
+import { Pencil, ChevronDown, ChevronUp, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { DeleteCategoryButton } from "./delete-category-button";
 import { EditCategoryDialog } from "./edit-category-dialog";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { agruparPorPadre } from "@/lib/categorias";
 
 interface CategoriaGridProps {
   categories: CategoriaConEstadisticas[];
+  presupuestos: PresupuestoConProgreso[];
   moneda: string;
 }
 
+function BarraPresupuesto({ presupuesto, moneda }: { presupuesto: PresupuestoConProgreso; moneda: string }) {
+  const pasado = presupuesto.porcentaje >= 100;
+  const cerca = presupuesto.porcentaje >= 80 && !pasado;
+
+  return (
+    <div className="mt-1.5">
+      <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+        <div
+          className={cn(
+            "h-full rounded-full transition-all",
+            pasado ? "bg-expense" : cerca ? "bg-amber-500" : "bg-income"
+          )}
+          style={{ width: `${Math.min(100, presupuesto.porcentaje)}%` }}
+        />
+      </div>
+      <p className={cn("text-[10px] mt-0.5", pasado ? "text-expense" : "text-muted-foreground")}>
+        {formatCurrency(presupuesto.gastado, moneda)} de {formatCurrency(presupuesto.monto, moneda)} este mes
+        {" "}({presupuesto.porcentaje.toFixed(0)}%)
+      </p>
+    </div>
+  );
+}
+
 function FilaCategoria({
-  cat, moneda, onEditar, subcategoria = false, expandible = false, expandido = false, onToggleExpandir,
+  cat, moneda, onEditar, subcategoria = false, expandible = false, expandido = false, onToggleExpandir, presupuesto,
 }: {
   cat: CategoriaConEstadisticas;
   moneda: string;
@@ -27,6 +53,7 @@ function FilaCategoria({
   expandible?: boolean;
   expandido?: boolean;
   onToggleExpandir?: () => void;
+  presupuesto?: PresupuestoConProgreso;
 }) {
   return (
     <div
@@ -37,7 +64,7 @@ function FilaCategoria({
         expandible && "cursor-pointer"
       )}
     >
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
         <div
           className={cn(
             "rounded-full flex items-center justify-center font-bold shrink-0",
@@ -47,7 +74,7 @@ function FilaCategoria({
         >
           {cat.nombre.charAt(0).toUpperCase()}
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className={cn("font-medium truncate", subcategoria ? "text-xs" : "text-sm")}>{cat.nombre}</p>
           <p className="text-xs text-muted-foreground truncate">
             {cat._count.transacciones}{" "}
@@ -57,6 +84,7 @@ function FilaCategoria({
               <> · {cat._count.subcategorias} subcategoría{cat._count.subcategorias !== 1 ? "s" : ""}</>
             )}
           </p>
+          {presupuesto && <BarraPresupuesto presupuesto={presupuesto} moneda={moneda} />}
         </div>
       </div>
       <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -81,15 +109,18 @@ function FilaCategoria({
 }
 
 function GrupoCategoria({
-  padre, hijos, moneda, onEditar,
+  padre, hijos, moneda, onEditar, expandidoForzado = false, presupuestoPorCategoria,
 }: {
   padre: CategoriaConEstadisticas;
   hijos: CategoriaConEstadisticas[];
   moneda: string;
   onEditar: (id: string) => void;
+  expandidoForzado?: boolean;
+  presupuestoPorCategoria: Map<string, PresupuestoConProgreso>;
 }) {
-  const [expandido, setExpandido] = useState(false);
+  const [expandidoManual, setExpandidoManual] = useState(false);
   const tieneHijos = hijos.length > 0;
+  const expandido = expandidoForzado || expandidoManual;
 
   return (
     <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -99,10 +130,18 @@ function GrupoCategoria({
         onEditar={onEditar}
         expandible={tieneHijos}
         expandido={expandido}
-        onToggleExpandir={() => setExpandido((v) => !v)}
+        onToggleExpandir={() => setExpandidoManual((v) => !v)}
+        presupuesto={presupuestoPorCategoria.get(padre.id)}
       />
       {tieneHijos && expandido && hijos.map((hijo) => (
-        <FilaCategoria key={hijo.id} cat={hijo} moneda={moneda} onEditar={onEditar} subcategoria />
+        <FilaCategoria
+          key={hijo.id}
+          cat={hijo}
+          moneda={moneda}
+          onEditar={onEditar}
+          subcategoria
+          presupuesto={presupuestoPorCategoria.get(hijo.id)}
+        />
       ))}
     </div>
   );
@@ -114,14 +153,32 @@ function SeccionCategorias({
   tipo,
   onEditar,
   moneda,
+  busqueda,
+  presupuestoPorCategoria,
 }: {
   titulo: string;
   items: CategoriaConEstadisticas[];
   tipo: TipoTransaccion;
   onEditar: (id: string) => void;
   moneda: string;
+  busqueda: string;
+  presupuestoPorCategoria: Map<string, PresupuestoConProgreso>;
 }) {
-  const grupos = agruparPorPadre(items);
+  const query = busqueda.trim().toLowerCase();
+
+  const grupos = useMemo(() => {
+    const base = agruparPorPadre(items);
+    if (!query) return base;
+    return base
+      .map(({ padre, hijos }) => ({
+        padre,
+        // Si el padre matchea, mostramos todas sus subcategorías; si no, solo las que matchean.
+        hijos: padre.nombre.toLowerCase().includes(query)
+          ? hijos
+          : hijos.filter((h) => h.nombre.toLowerCase().includes(query)),
+      }))
+      .filter(({ padre, hijos }) => padre.nombre.toLowerCase().includes(query) || hijos.length > 0);
+  }, [items, query]);
 
   return (
     <div>
@@ -141,40 +198,69 @@ function SeccionCategorias({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-start">
         {grupos.length === 0 && (
           <p className="text-sm text-muted-foreground col-span-full py-2">
-            Sin categorías todavía.
+            {query ? "Sin resultados." : "Sin categorías todavía."}
           </p>
         )}
         {grupos.map(({ padre, hijos }) => (
-          <GrupoCategoria key={padre.id} padre={padre} hijos={hijos} moneda={moneda} onEditar={onEditar} />
+          <GrupoCategoria
+            key={padre.id}
+            padre={padre}
+            hijos={hijos}
+            moneda={moneda}
+            onEditar={onEditar}
+            expandidoForzado={!!query}
+            presupuestoPorCategoria={presupuestoPorCategoria}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-export function CategoryGrid({ categories, moneda }: CategoriaGridProps) {
+export function CategoryGrid({ categories, presupuestos, moneda }: CategoriaGridProps) {
   const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [busqueda, setBusqueda] = useState("");
 
   const ingresos = categories.filter((c) => c.tipo === TipoTransaccion.INGRESO);
   const gastos = categories.filter((c) => c.tipo === TipoTransaccion.GASTO);
   const categoriaEditando = categories.find((c) => c.id === editandoId);
+  const presupuestoPorCategoria = useMemo(
+    () => new Map(presupuestos.map((p) => [p.categoriaId, p])),
+    [presupuestos]
+  );
 
   return (
-    <div className="space-y-8">
-      <SeccionCategorias
-        titulo="Ingresos"
-        items={ingresos}
-        tipo={TipoTransaccion.INGRESO}
-        onEditar={setEditandoId}
-        moneda={moneda}
-      />
-      <SeccionCategorias
-        titulo="Gastos"
-        items={gastos}
-        tipo={TipoTransaccion.GASTO}
-        onEditar={setEditandoId}
-        moneda={moneda}
-      />
+    <div className="space-y-6">
+      <div className="relative max-w-xs">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+        <Input
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          placeholder="Buscar categoría…"
+          className="pl-9"
+        />
+      </div>
+
+      <div className="space-y-8">
+        <SeccionCategorias
+          titulo="Ingresos"
+          items={ingresos}
+          tipo={TipoTransaccion.INGRESO}
+          onEditar={setEditandoId}
+          moneda={moneda}
+          busqueda={busqueda}
+          presupuestoPorCategoria={presupuestoPorCategoria}
+        />
+        <SeccionCategorias
+          titulo="Gastos"
+          items={gastos}
+          tipo={TipoTransaccion.GASTO}
+          onEditar={setEditandoId}
+          moneda={moneda}
+          busqueda={busqueda}
+          presupuestoPorCategoria={presupuestoPorCategoria}
+        />
+      </div>
 
       {categoriaEditando && (
         <EditCategoryDialog

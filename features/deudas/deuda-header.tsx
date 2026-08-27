@@ -11,7 +11,8 @@ interface DeudaHeaderProps {
   totalCuotasCobrar?: number;
   totalCuotasPagar?: number;
   moneda?: Moneda;
-  cuotasEsteMes?: number;  // ← nuevo
+  cuotasHastaCierre?: number;
+  fechaCierre?: Date;
 }
 
 function formatMoney(amount: number, moneda: Moneda = "ARS") {
@@ -28,9 +29,13 @@ export function DeudaHeader({
   vencidas,
   totalCuotasCobrar = 0,
   totalCuotasPagar = 0,
-  cuotasEsteMes = 0,  // ← agregar
+  cuotasHastaCierre = 0,
+  fechaCierre,
   moneda = "ARS",
 }: DeudaHeaderProps) {
+  const labelCierre = fechaCierre
+    ? new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "short" }).format(fechaCierre)
+    : null;
   const balance = totalCobrar - totalPagar;
   const isPositive = balance >= 0;
   const tieneCuotas = totalCuotasCobrar > 0 || totalCuotasPagar > 0;
@@ -103,11 +108,13 @@ export function DeudaHeader({
                 No afectan el balance
               </span>
             </div>
-            {cuotasEsteMes > 0 && (
+            {cuotasHastaCierre > 0 && (
               <div className="text-right shrink-0">
-                <p className="text-xs text-muted-foreground">Este mes</p>
+                <p className="text-xs text-muted-foreground">
+                  {labelCierre ? `Antes del cierre (${labelCierre})` : "Este mes"}
+                </p>
                 <p className="text-sm font-semibold text-rose-600 dark:text-rose-400 tabular-nums">
-                  {formatMoney(cuotasEsteMes, moneda)}
+                  {formatMoney(cuotasHastaCierre, moneda)}
                 </p>
               </div>
             )}

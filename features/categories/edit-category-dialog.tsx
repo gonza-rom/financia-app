@@ -2,7 +2,7 @@
 "use client";
 
 import { useForm } from "react-hook-form";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { FormularioCategoria, CategoriaConEstadisticas } from "@/types";
 import { updateCategoryAction } from "./actions";
+import { definirPresupuestoAction } from "@/features/presupuestos/actions";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,7 @@ interface EditarCategoriaDialogProps {
 export function EditCategoryDialog({ categoria, categoriasExistentes, open, onOpenChange }: EditarCategoriaDialogProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const [presupuesto, setPresupuesto] = useState(categoria.presupuestoMonto?.toString() ?? "");
 
   const { register, handleSubmit, setValue, watch } = useForm<FormularioCategoria>({
     defaultValues: {
@@ -52,12 +54,25 @@ export function EditCategoryDialog({ categoria, categoriasExistentes, open, onOp
   function onSubmit(data: FormularioCategoria) {
     startTransition(async () => {
       const result = await updateCategoryAction(categoria.id, data);
-      if (result.success) {
-        toast({ title: "Categoría actualizada" });
-        onOpenChange(false);
-      } else {
+      if (!result.success) {
         toast({ variant: "destructive", title: "Error", description: result.error });
+        return;
       }
+
+      if (categoria.tipo === "GASTO") {
+        const montoPresupuesto = parseFloat(presupuesto);
+        const presResult = await definirPresupuestoAction(
+          categoria.id,
+          isNaN(montoPresupuesto) ? 0 : montoPresupuesto
+        );
+        if (!presResult.success) {
+          toast({ variant: "destructive", title: "Error", description: presResult.error });
+          return;
+        }
+      }
+
+      toast({ title: "Categoría actualizada" });
+      onOpenChange(false);
     });
   }
 
@@ -103,6 +118,26 @@ export function EditCategoryDialog({ categoria, categoriasExistentes, open, onOp
             <p className="text-xs text-muted-foreground">
               Esta categoría tiene subcategorías propias, así que no puede pasar a ser subcategoría de otra.
             </p>
+          )}
+
+          {categoria.tipo === "GASTO" && (
+            <div className="space-y-2">
+              <Label htmlFor="edit-cat-presupuesto">
+                Presupuesto mensual <span className="text-muted-foreground font-normal">(opcional)</span>
+              </Label>
+              <Input
+                id="edit-cat-presupuesto"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Sin límite"
+                value={presupuesto}
+                onChange={(e) => setPresupuesto(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Se avisa cuando el gasto del mes en esta categoría (y sus subcategorías) se acerca o pasa este monto.
+              </p>
+            </div>
           )}
 
           <div className="space-y-2">

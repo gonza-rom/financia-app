@@ -18,6 +18,7 @@ import { StatsSkeleton, ChartSkeleton, TransactionListSkeleton } from "@/compone
 import { TipoTransaccion } from "@prisma/client";
 import { getCachedResumenDeudas } from "@/features/dashboard/deudas-query";
 import { DeudasWidget } from "@/features/dashboard/deudas-widget";
+import { getProximoCierre } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -34,7 +35,7 @@ async function DashboardData() {
       getCachedYearlyChart(usuario.id, anio),
       getCachedCategoryBreakdown(usuario.id, anio, mes, TipoTransaccion.GASTO),
       getTransaccionesRecientes(usuario.id, 8),
-      getCachedResumenDeudas(usuario.id),
+      getCachedResumenDeudas(usuario.id, usuario.diaCierreTarjeta),
       getCachedDailyStats(usuario.id),
     ]);
 
@@ -61,6 +62,8 @@ async function DashboardData() {
         cuotasPagar={resumenDeudas.cuotasPagar}
         cantidadCuotasCobrar={resumenDeudas.cantidadCuotasCobrar}
         cantidadCuotasPagar={resumenDeudas.cantidadCuotasPagar}
+        cuotasHastaCierre={resumenDeudas.cuotasHastaCierre}
+        fechaCierre={getProximoCierre(usuario.diaCierreTarjeta)}
         moneda={usuario.moneda}
       />
 

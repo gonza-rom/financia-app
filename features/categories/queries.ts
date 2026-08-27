@@ -9,7 +9,10 @@ export const getCachedCategorias = unstable_cache(
     const [categorias, totales] = await Promise.all([
       prisma.categoria.findMany({
         where: { usuarioId },
-        include: { _count: { select: { transacciones: true, subcategorias: true } } },
+        include: {
+          _count: { select: { transacciones: true, subcategorias: true } },
+          presupuesto: { select: { monto: true } },
+        },
         orderBy: { nombre: "asc" },
       }),
       prisma.transaccion.groupBy({
@@ -19,9 +22,10 @@ export const getCachedCategorias = unstable_cache(
       }),
     ]);
 
-    return categorias.map((cat) => ({
+    return categorias.map(({ presupuesto, ...cat }) => ({
       ...cat,
       montoTotal: Number(totales.find((t) => t.categoriaId === cat.id)?._sum.monto ?? 0),
+      presupuestoMonto: presupuesto ? Number(presupuesto.monto) : null,
     }));
   },
   ["categorias"],

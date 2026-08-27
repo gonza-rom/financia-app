@@ -9,14 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { registrarPagoDeuda } from "./actions";
 import type { Deuda } from "@/types/deudas";
 import type { Categoria } from "@/types";
-import { CategoriaSelectItems } from "@/features/categories/categoria-select-items";
+import { CategoriaCombobox } from "@/features/categories/categoria-combobox";
 
 function fmt(n: number, moneda: string) {
   return new Intl.NumberFormat("es-AR", {
@@ -187,19 +184,14 @@ export function PagoDialog({ deuda, categorias = [], open, onOpenChange }: PagoD
                 Creá una en la sección Categorías.
               </p>
             ) : (
-              <Select
-                value={categoriaId ?? "ninguna"}
-                onValueChange={(v) => setCategoriaId(v === "ninguna" ? undefined : v)}
+              <CategoriaCombobox
+                categorias={categoriasRelevantes}
+                value={categoriaId}
+                onChange={(id) => setCategoriaId(id || undefined)}
                 disabled={isPending}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sin categoría" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ninguna">Sin categoría (no registra transacción)</SelectItem>
-                  <CategoriaSelectItems categorias={categoriasRelevantes} />
-                </SelectContent>
-              </Select>
+                allowNone
+                noneLabel="Sin categoría (no registra transacción)"
+              />
             )}
             {categoriaId && monto && !isNaN(parseFloat(monto)) && (
               <p className="text-xs text-muted-foreground">

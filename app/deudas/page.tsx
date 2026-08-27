@@ -4,6 +4,7 @@ import { DeudaHeader } from "@/features/deudas/deuda-header";
 import { getDeudas } from "@/features/deudas/queries";
 import { getCategorias } from "@/features/categories/queries";
 import { getCurrentUser } from "@/lib/auth";
+import { getProximoCierre } from "@/lib/utils";
 
 export const metadata = { title: "Deudas" };
 
@@ -35,20 +36,18 @@ export default async function DeudasPage() {
 
   const vencidas = deudas.filter((d) => d.estado === "vencida").length;
 
-const ahora = new Date();
-const cuotasEsteMes = activas
-  .filter((d) => d.cuotas?.length)
-  .reduce((acc, d) => {
-    const cuotasDelMes = d.cuotas?.filter((c) => {
-      if (c.pagada) return false;
-      const fecha = new Date(c.fechaVencimiento);
-      return (
-        fecha.getMonth() === ahora.getMonth() &&
-        fecha.getFullYear() === ahora.getFullYear()
-      );
-    }) ?? [];
-    return acc + cuotasDelMes.reduce((s, c) => s + c.monto, 0);
-  }, 0);
+  // Cuánto hay que pagar antes del próximo cierre de tarjeta (no del mes calendario) —
+  // solo deudas que debés vos, no las que te deben a vos.
+  const fechaCierre = getProximoCierre(usuario.diaCierreTarjeta);
+  const cuotasHastaCierre = activas
+    .filter((d) => d.tipo === "pagar" && d.cuotas?.length)
+    .reduce((acc, d) => {
+      const cuotasPendientes = d.cuotas?.filter((c) => {
+        if (c.pagada) return false;
+        return new Date(c.fechaVencimiento) <= fechaCierre;
+      }) ?? [];
+      return acc + cuotasPendientes.reduce((s, c) => s + c.monto, 0);
+    }, 0);
 
   return (
     <div className="space-y-6">
@@ -57,7 +56,8 @@ const cuotasEsteMes = activas
         totalPagar={totalPagar}
         totalCuotasCobrar={totalCuotasCobrar}
         totalCuotasPagar={totalCuotasPagar}
-        cuotasEsteMes={cuotasEsteMes}
+        cuotasHastaCierre={cuotasHastaCierre}
+        fechaCierre={fechaCierre}
         vencidas={vencidas}
       />
       <DeudaList deudas={deudas} categorias={categorias} />
