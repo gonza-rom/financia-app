@@ -28,6 +28,9 @@ interface GastoDialogProps {
 type FormData = FormularioGastoVehiculo & {
   registrarEnFinanzas?: boolean;
   categoriaId?: string;
+  pagarEnCuotas?: boolean;
+  cantidadCuotas?: number;
+  fechaInicioCuotas?: Date;
 };
 
 function detectarTipo(nombreSeccion: string) {
@@ -47,10 +50,12 @@ export function GastoDialog({ vehiculoId, seccion, categorias, open, onOpenChang
     defaultValues: {
       fecha: new Date(),
       registrarEnFinanzas: false,
+      pagarEnCuotas: false,
     },
   });
 
   const registrarEnFinanzas = watch("registrarEnFinanzas");
+  const pagarEnCuotas = watch("pagarEnCuotas");
   const categoriasGasto = (categorias ?? []).filter((c) => c.tipo === "GASTO");
 
   function onSubmit(data: FormData) {
@@ -161,21 +166,61 @@ export function GastoDialog({ vehiculoId, seccion, categorias, open, onOpenChang
             <Input id="g-notas" placeholder="Alguna nota…" {...register("notas")} />
           </div>
 
-          {/* Toggle registrar en finanzas */}
+          {/* Toggle pagar en cuotas — excluyente con "registrar en finanzas": la plata
+              todavía no salió del bolsillo, se va a reflejar cuota por cuota desde Deudas */}
           <div
             className="flex items-center justify-between rounded-lg border border-border p-3 cursor-pointer"
-            onClick={() => setValue("registrarEnFinanzas", !registrarEnFinanzas)}
+            onClick={() => {
+              const nuevo = !pagarEnCuotas;
+              setValue("pagarEnCuotas", nuevo);
+              if (nuevo) setValue("registrarEnFinanzas", false);
+            }}
           >
             <div>
-              <p className="text-sm font-medium">Registrar en finanzas</p>
-              <p className="text-xs text-muted-foreground">Aparece en tus transacciones personales</p>
+              <p className="text-sm font-medium">Pagar en cuotas</p>
+              <p className="text-xs text-muted-foreground">Crea una deuda en Deudas en vez de registrar el gasto de una</p>
             </div>
-            <div className={`relative w-9 h-5 rounded-full transition-colors ${registrarEnFinanzas ? "bg-primary" : "bg-muted"}`}>
-              <div className={`absolute top-0.5 size-4 rounded-full bg-white shadow transition-transform ${registrarEnFinanzas ? "translate-x-4" : "translate-x-0.5"}`} />
+            <div className={`relative w-9 h-5 rounded-full transition-colors ${pagarEnCuotas ? "bg-primary" : "bg-muted"}`}>
+              <div className={`absolute top-0.5 size-4 rounded-full bg-white shadow transition-transform ${pagarEnCuotas ? "translate-x-4" : "translate-x-0.5"}`} />
             </div>
           </div>
 
-          {registrarEnFinanzas && (
+          {pagarEnCuotas && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="g-cant-cuotas">Cantidad de cuotas</Label>
+                <Input id="g-cant-cuotas" type="number" min={2} placeholder="Ej: 3"
+                  {...register("cantidadCuotas", { valueAsNumber: true, min: 2 })} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="g-inicio-cuotas">Primera cuota</Label>
+                <Input
+                  id="g-inicio-cuotas"
+                  type="date"
+                  defaultValue={formatFechaInput(new Date())}
+                  {...register("fechaInicioCuotas", { setValueAs: parseFechaLocal })}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Toggle registrar en finanzas */}
+          {!pagarEnCuotas && (
+            <div
+              className="flex items-center justify-between rounded-lg border border-border p-3 cursor-pointer"
+              onClick={() => setValue("registrarEnFinanzas", !registrarEnFinanzas)}
+            >
+              <div>
+                <p className="text-sm font-medium">Registrar en finanzas</p>
+                <p className="text-xs text-muted-foreground">Aparece en tus transacciones personales</p>
+              </div>
+              <div className={`relative w-9 h-5 rounded-full transition-colors ${registrarEnFinanzas ? "bg-primary" : "bg-muted"}`}>
+                <div className={`absolute top-0.5 size-4 rounded-full bg-white shadow transition-transform ${registrarEnFinanzas ? "translate-x-4" : "translate-x-0.5"}`} />
+              </div>
+            </div>
+          )}
+
+          {!pagarEnCuotas && registrarEnFinanzas && (
             <div className="space-y-2">
               <Label>Categoría de finanzas</Label>
               {categoriasGasto.length === 0 ? (

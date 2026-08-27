@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath, revalidateTag } from "next/cache";
 import type { FormularioVehiculo, FormularioSeccion, FormularioGastoVehiculo } from "@/types/vehiculos";
 import { SECCIONES_PREDEFINIDAS } from "@/types/vehiculos";
+import { generarCuotas } from "@/features/deudas/cuotas";
 
 type Resultado<T = void> = { success: true; data: T } | { success: false; error: string };
 
@@ -181,6 +182,9 @@ export async function crearGastoVehiculoAction(
   data: FormularioGastoVehiculo & {
     registrarEnFinanzas?: boolean;
     categoriaId?: string;
+    pagarEnCuotas?: boolean;
+    cantidadCuotas?: number;
+    fechaInicioCuotas?: Date;
   }
 ): Promise<Resultado<{ id: string }>> {
   try {
@@ -198,56 +202,83 @@ export async function crearGastoVehiculoAction(
       const categoria = await prisma.categoria.findFirst({ where: { id: data.categoriaId, usuarioId: usuario.id } });
       if (!categoria) return { success: false, error: "Categoría no encontrada." };
     }
+    if (data.pagarEnCuotas && (!data.cantidadCuotas || data.cantidadCuotas < 2)) {
+      return { success: false, error: "Ingresá al menos 2 cuotas." };
+    }
 
-    // Crear transacción personal si se solicita
-    let transaccionId: string | undefined;
+    const { gasto } = await prisma.$transaction(async (tx) => {
+      // El gasto en cuotas y el registro inmediato en finanzas son excluyentes: si se
+      // paga en cuotas, la plata todavía no salió del bolsillo — se va a reflejar cuota
+      // por cuota desde Deudas a medida que se van pagando, no de una sola vez acá.
+      let transaccionId: string | undefined;
+      let deudaId: string | undefined;
 
-    if (data.registrarEnFinanzas && data.categoriaId) {
-      const transaccion = await prisma.transaccion.create({
+      if (data.pagarEnCuotas && data.cantidadCuotas) {
+        const cuotas = generarCuotas(data.monto, data.cantidadCuotas, data.fechaInicioCuotas ?? data.fecha);
+        const deuda = await tx.deuda.create({
+          data: {
+            tipo: "PAGAR",
+            contraparte: vehiculo.nombre,
+            descripcion: data.descripcion.trim(),
+            montoTotal: data.monto,
+            montoPagado: 0,
+            usuarioId: usuario.id,
+            vehiculoId,
+            cuotas: { create: cuotas },
+          },
+        });
+        deudaId = deuda.id;
+      } else if (data.registrarEnFinanzas && data.categoriaId) {
+        const transaccion = await tx.transaccion.create({
+          data: {
+            monto: data.monto,
+            descripcion: data.descripcion.trim(), // misma descripción
+            tipo: "GASTO",
+            fecha: data.fecha,
+            notas: data.notas?.trim() || null,
+            esRecurrente: false,
+            usuarioId: usuario.id,
+            categoriaId: data.categoriaId,
+          },
+        });
+        transaccionId = transaccion.id;
+      }
+
+      // Crear el gasto del vehículo vinculado a la transacción o a la deuda
+      const gasto = await tx.gastoVehiculo.create({
         data: {
           monto: data.monto,
-          descripcion: data.descripcion.trim(), // misma descripción
-          tipo: "GASTO",
           fecha: data.fecha,
+          descripcion: data.descripcion.trim(),
           notas: data.notas?.trim() || null,
-          esRecurrente: false,
-          usuarioId: usuario.id,
-          categoriaId: data.categoriaId,
+          kilometraje: data.kilometraje ?? null,
+          litros: data.litros ?? null,
+          precioPorUnidad: data.precioPorUnidad ?? null,
+          vencimiento: data.vencimiento ?? null,
+          proximoKm: data.proximoKm ?? null,
+          vehiculoId,
+          seccionId,
+          ...(transaccionId && { transaccionId }),
+          ...(deudaId && { deudaId }),
         },
       });
-      transaccionId = transaccion.id;
-    }
 
-    // Crear el gasto del vehículo vinculado a la transacción
-    const gasto = await prisma.gastoVehiculo.create({
-      data: {
-        monto: data.monto,
-        fecha: data.fecha,
-        descripcion: data.descripcion.trim(),
-        notas: data.notas?.trim() || null,
-        kilometraje: data.kilometraje ?? null,
-        litros: data.litros ?? null,
-        precioPorUnidad: data.precioPorUnidad ?? null,
-        vencimiento: data.vencimiento ?? null,
-        proximoKm: data.proximoKm ?? null,
-        vehiculoId,
-        seccionId,
-        ...(transaccionId && { transaccionId }),
-      },
+      // Actualizar km del vehículo si el nuevo es mayor
+      if (data.kilometraje && data.kilometraje > (vehiculo.kilometraje ?? 0)) {
+        await tx.vehiculo.update({
+          where: { id: vehiculoId },
+          data: { kilometraje: data.kilometraje },
+        });
+      }
+
+      return { gasto, deudaId };
     });
-
-    // Actualizar km del vehículo si el nuevo es mayor
-    if (data.kilometraje && data.kilometraje > (vehiculo.kilometraje ?? 0)) {
-      await prisma.vehiculo.update({
-        where: { id: vehiculoId },
-        data: { kilometraje: data.kilometraje },
-      });
-    }
 
     revalidateTag("vehiculos");
     revalidatePath(`/vehiculos/${vehiculoId}`);
     revalidatePath("/dashboard");
     revalidatePath("/transacciones");
+    if (data.pagarEnCuotas) revalidatePath("/deudas");
 
     return { success: true, data: { id: gasto.id } };
   } catch (err) {
