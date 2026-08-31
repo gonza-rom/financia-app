@@ -93,6 +93,7 @@ model Transaccion {
   gastoEmpresa   GastoEmpresa?
   gastoVehiculo   GastoVehiculo?
   pagoDeuda       PagoDeuda?      // ← agregar
+  cuotaDeuda      CuotaDeuda?
   cuentaId        String?       @map("cuenta_id")
   cuenta          Cuenta?       @relation(fields: [cuentaId], references: [id], onDelete: SetNull)
 
@@ -352,9 +353,11 @@ model CuotaDeuda {
   fechaPago        DateTime? @map("fecha_pago")
   pagada           Boolean  @default(false)
   deudaId          String   @map("deuda_id")
+  transaccionId    String?  @unique @map("transaccion_id")
   creadoEn         DateTime @default(now()) @map("creado_en")
   actualizadoEn    DateTime @updatedAt @map("actualizado_en")
   deuda            Deuda    @relation(fields: [deudaId], references: [id], onDelete: Cascade)
+  transaccion      Transaccion? @relation(fields: [transaccionId], references: [id], onDelete: SetNull)
 
   @@index([deudaId])
   @@map("cuotas_deuda")

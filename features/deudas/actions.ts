@@ -396,32 +396,37 @@ export async function marcarCuotaPagada(
 
     const nuevoMontoPagado = toNumber(deuda.montoPagado) + toNumber(cuota.monto);
 
-    await prisma.$transaction([
-      prisma.cuotaDeuda.update({
+    await prisma.$transaction(async (tx) => {
+      let transaccionId: string | undefined;
+      if (categoriaId) {
+        const transaccion = await tx.transaccion.create({
+          data: {
+            monto: toNumber(cuota.monto),
+            descripcion: deuda.tipo === "COBRAR"
+              ? `Cuota ${cuota.numero} cobrada — ${deuda.contraparte}`
+              : `Cuota ${cuota.numero} pagada — ${deuda.contraparte}`,
+            tipo: deuda.tipo === "COBRAR" ? "INGRESO" : "GASTO",
+            fecha: new Date(),
+            esRecurrente: false,
+            usuarioId: usuario.id,
+            categoriaId,
+          },
+        });
+        transaccionId = transaccion.id;
+      }
+
+      await tx.cuotaDeuda.update({
         where: { id: cuotaId },
-        data: { pagada: true, fechaPago: new Date() },
-      }),
-      prisma.deuda.update({
+        data: { pagada: true, fechaPago: new Date(), ...(transaccionId && { transaccionId }) },
+      });
+      await tx.deuda.update({
         where: { id: deudaId },
         data: {
           montoPagado: nuevoMontoPagado,
           ...(todasPagas && { estado: "PAGADA", fechaPago: new Date() }),
         },
-      }),
-      ...(categoriaId ? [prisma.transaccion.create({
-        data: {
-          monto: toNumber(cuota.monto),
-          descripcion: deuda.tipo === "COBRAR"
-            ? `Cuota ${cuota.numero} cobrada — ${deuda.contraparte}`
-            : `Cuota ${cuota.numero} pagada — ${deuda.contraparte}`,
-          tipo: deuda.tipo === "COBRAR" ? "INGRESO" : "GASTO",
-          fecha: new Date(),
-          esRecurrente: false,
-          usuarioId: usuario.id,
-          categoriaId,
-        },
-      })] : []),
-    ]);
+      });
+    });
 
     revalidatePath("/deudas");
     revalidatePath("/dashboard");
@@ -430,6 +435,56 @@ export async function marcarCuotaPagada(
   } catch (error) {
     console.error("[marcarCuotaPagada]", error);
     return { success: false, error: "No se pudo marcar la cuota como pagada." };
+  }
+}
+
+// ─── Deshacer cuota pagada (ej. se marcó por error) ───────────────────────────
+
+export async function desmarcarCuotaPagada(
+  cuotaId: string,
+  deudaId: string,
+): Promise<ResultadoAccion> {
+  try {
+    const usuario = await getCurrentUser();
+
+    const deuda = await prisma.deuda.findFirst({
+      where: { id: deudaId, usuarioId: usuario.id },
+      include: { cuotas: true },
+    });
+    if (!deuda) return { success: false, error: "Deuda no encontrada." };
+
+    const cuota = deuda.cuotas.find((c) => c.id === cuotaId);
+    if (!cuota || !cuota.pagada) return { success: false, error: "Cuota no válida." };
+
+    const nuevoMontoPagado = Math.max(0, toNumber(deuda.montoPagado) - toNumber(cuota.monto));
+
+    await prisma.$transaction([
+      prisma.cuotaDeuda.update({
+        where: { id: cuotaId },
+        data: { pagada: false, fechaPago: null, transaccionId: null },
+      }),
+      prisma.deuda.update({
+        where: { id: deudaId },
+        data: {
+          montoPagado: nuevoMontoPagado,
+          // Si estaba marcada pagada por completar todas las cuotas, vuelve a pendiente.
+          ...(deuda.estado === "PAGADA" && { estado: "PENDIENTE", fechaPago: null }),
+        },
+      }),
+      // Si esa cuota había generado una transacción personal, se borra también —
+      // si no, quedaría un ingreso/gasto fantasma que en realidad nunca pasó.
+      ...(cuota.transaccionId
+        ? [prisma.transaccion.deleteMany({ where: { id: cuota.transaccionId, usuarioId: usuario.id } })]
+        : []),
+    ]);
+
+    revalidatePath("/deudas");
+    revalidatePath("/dashboard");
+    revalidatePath("/transacciones");
+    return { success: true, data: undefined };
+  } catch (error) {
+    console.error("[desmarcarCuotaPagada]", error);
+    return { success: false, error: "No se pudo deshacer la cuota." };
   }
 }
 
