@@ -5,12 +5,14 @@ import Link from "next/link";
 import { eliminarSeccionAction } from "./actions";
 import { useState } from "react";
 import { useTransition } from "react";
-import { Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronUp, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { SeccionConGastos } from "@/types/vehiculos";
+import type { SeccionConGastos, GastoVehiculoSerializado } from "@/types/vehiculos";
 import { formatCurrency, formatShortDate } from "@/lib/utils";
 import { eliminarGastoVehiculoAction } from "./actions";
 import { GastoDialog } from "./gasto-dialog";
+import { EditarSeccionDialog } from "./editar-seccion-dialog";
+import { EditarGastoDialog } from "./editar-gasto-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Categoria } from "@prisma/client";
@@ -25,6 +27,8 @@ interface SeccionCardProps {
 export function SeccionCard({ vehiculoId, seccion, moneda,categorias }: SeccionCardProps) {
   const [expandido, setExpandido] = useState(false);
   const [dialogGasto, setDialogGasto] = useState(false);
+  const [dialogEditarSeccion, setDialogEditarSeccion] = useState(false);
+  const [gastoEditando, setGastoEditando] = useState<GastoVehiculoSerializado | null>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -71,6 +75,15 @@ export function SeccionCard({ vehiculoId, seccion, moneda,categorias }: SeccionC
               onClick={() => setDialogGasto(true)}
             >
               <Plus className="size-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7"
+              onClick={() => setDialogEditarSeccion(true)}
+              title="Editar sección"
+            >
+              <Pencil className="size-3.5" />
             </Button>
             <Button
               variant="ghost"
@@ -169,15 +182,27 @@ export function SeccionCard({ vehiculoId, seccion, moneda,categorias }: SeccionC
                       <span className="text-sm font-semibold">
                         {formatCurrency(Number(gasto.monto), moneda)}
                       </span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-6 text-destructive hover:text-destructive opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-                        onClick={() => handleEliminarGasto(gasto.id)}
-                        disabled={isPending}
-                      >
-                        <Trash2 className="size-3" />
-                      </Button>
+                      <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-6"
+                          onClick={() => setGastoEditando(gasto)}
+                          title="Editar gasto"
+                        >
+                          <Pencil className="size-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-6 text-destructive hover:text-destructive"
+                          onClick={() => handleEliminarGasto(gasto.id)}
+                          disabled={isPending}
+                          title="Eliminar gasto"
+                        >
+                          <Trash2 className="size-3" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -201,6 +226,23 @@ export function SeccionCard({ vehiculoId, seccion, moneda,categorias }: SeccionC
         open={dialogGasto}
         onOpenChange={setDialogGasto}
       />
+
+      <EditarSeccionDialog
+        vehiculoId={vehiculoId}
+        seccion={seccion}
+        open={dialogEditarSeccion}
+        onOpenChange={setDialogEditarSeccion}
+      />
+
+      {gastoEditando && (
+        <EditarGastoDialog
+          vehiculoId={vehiculoId}
+          seccion={seccion}
+          gasto={gastoEditando}
+          open={!!gastoEditando}
+          onOpenChange={(o) => !o && setGastoEditando(null)}
+        />
+      )}
     </>
   );
 }
