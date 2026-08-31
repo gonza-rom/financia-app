@@ -18,6 +18,8 @@ import { StatsSkeleton, ChartSkeleton, TransactionListSkeleton } from "@/compone
 import { TipoTransaccion } from "@prisma/client";
 import { getCachedResumenDeudas } from "@/features/dashboard/deudas-query";
 import { DeudasWidget } from "@/features/dashboard/deudas-widget";
+import { getCachedRecordatorios } from "@/features/dashboard/recordatorios-query";
+import { RecordatoriosWidget } from "@/features/dashboard/recordatorios-widget";
 import { getProximoCierre } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -29,7 +31,7 @@ async function DashboardData() {
   const mes   = ahora.getMonth() + 1;
   const mesLabel = ahora.toLocaleString("es-AR", { month: "long", year: "numeric" });
 
-  const [stats, graficoDatos, desgloseGastos, transRecientes, resumenDeudas, dailyStats] =
+  const [stats, graficoDatos, desgloseGastos, transRecientes, resumenDeudas, dailyStats, recordatorios] =
     await Promise.all([
       getCachedDashboardStats(usuario.id),
       getCachedYearlyChart(usuario.id, anio),
@@ -37,12 +39,16 @@ async function DashboardData() {
       getTransaccionesRecientes(usuario.id, 8),
       getCachedResumenDeudas(usuario.id, usuario.diaCierreTarjeta),
       getCachedDailyStats(usuario.id),
+      getCachedRecordatorios(usuario.id),
     ]);
 
   return (
     <>
       {/* Cards de resumen */}
       <StatsCards stats={stats} moneda={usuario.moneda} />
+
+      {/* Recordatorios de vencimientos */}
+      <RecordatoriosWidget recordatorios={recordatorios} />
 
       {/* Gráfico diario + resumen semanal */}
       <StatsSection

@@ -24,6 +24,7 @@ import {
   marcarDeudaVencida,
   marcarCuotaPagada,
   desmarcarCuotaPagada,
+  eliminarPagoDeuda,
   eliminarDeuda,
 } from "@/features/deudas/actions";
 import { DeudaFormDialog } from "@/features/deudas/deuda-form-dialog";
@@ -258,6 +259,7 @@ function PagarCuotaDialog({
 
 function DeudaRow({ deuda, categorias }: { deuda: Deuda; categorias: Categoria[] }) {
   const [cuotasOpen, setCuotasOpen] = useState(false);
+  const [pagosOpen, setPagosOpen] = useState(false);
   const [pagoOpen, setPagoOpen] = useState(false);
   const [marcarPagadaOpen, setMarcarPagadaOpen] = useState(false);
   const [cuotaDialogOpen, setCuotaDialogOpen] = useState(false);
@@ -312,6 +314,14 @@ function DeudaRow({ deuda, categorias }: { deuda: Deuda; categorias: Categoria[]
     if (!confirm("¿Deshacer el pago de esta cuota? Si generó una transacción personal, también se elimina.")) return;
     startTransition(async () => {
       const res = await desmarcarCuotaPagada(cuotaId, deuda.id);
+      if (!res.success) toast({ variant: "destructive", title: res.error });
+    });
+  }
+
+  function handleEliminarPago(pagoId: string) {
+    if (!confirm("¿Eliminar este pago? Si generó una transacción personal, también se elimina.")) return;
+    startTransition(async () => {
+      const res = await eliminarPagoDeuda(pagoId, deuda.id);
       if (!res.success) toast({ variant: "destructive", title: res.error });
     });
   }
@@ -407,6 +417,19 @@ function DeudaRow({ deuda, categorias }: { deuda: Deuda; categorias: Categoria[]
               </button>
             )}
 
+            {tienePagosParciales && (deuda.pagos?.length ?? 0) > 0 && (
+              <button
+                type="button"
+                onClick={() => setPagosOpen((v) => !v)}
+                title="Ver pagos registrados"
+                className="rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                {pagosOpen
+                  ? <ChevronUp className="size-3.5" />
+                  : <ChevronDown className="size-3.5" />}
+              </button>
+            )}
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
@@ -487,6 +510,33 @@ function DeudaRow({ deuda, categorias }: { deuda: Deuda; categorias: Categoria[]
                     {fmt(cuota.monto, deuda.moneda)}
                   </span>
                   {cuota.pagada && <Undo2 className="size-3.5 text-muted-foreground" />}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {pagosOpen && deuda.pagos && (
+          <div className="border-t border-border px-3 py-2 space-y-1">
+            {deuda.pagos.map((pago) => (
+              <button
+                key={pago.id}
+                type="button"
+                disabled={isPending}
+                title="Eliminar este pago"
+                onClick={() => handleEliminarPago(pago.id)}
+                className="w-full flex items-center justify-between rounded px-2 py-1.5 text-sm transition-colors hover:bg-muted cursor-pointer"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <CheckCircle2 className="size-4 shrink-0 text-emerald-500" />
+                  <span className="truncate">{fmtDate(pago.fecha)}</span>
+                  {pago.notas && (
+                    <span className="text-xs text-muted-foreground truncate">· {pago.notas}</span>
+                  )}
+                </div>
+                <span className="flex items-center gap-1.5 shrink-0">
+                  <span className="tabular-nums">{fmt(pago.monto, deuda.moneda)}</span>
+                  <Trash2 className="size-3.5 text-muted-foreground" />
                 </span>
               </button>
             ))}

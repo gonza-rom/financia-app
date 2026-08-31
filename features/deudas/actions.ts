@@ -225,9 +225,16 @@ export async function eliminarPagoDeuda(
           ...(deuda.estado === "PAGADA" && { estado: "PENDIENTE", fechaPago: null }),
         },
       }),
+      // Si ese pago había generado una transacción personal, se borra también —
+      // si no, quedaría un ingreso/gasto fantasma que en realidad nunca pasó.
+      ...(pago.transaccionId
+        ? [prisma.transaccion.deleteMany({ where: { id: pago.transaccionId, usuarioId: usuario.id } })]
+        : []),
     ]);
 
     revalidatePath("/deudas");
+    revalidatePath("/dashboard");
+    revalidatePath("/transacciones");
     return { success: true, data: undefined };
   } catch (error) {
     console.error("[eliminarPagoDeuda]", error);
