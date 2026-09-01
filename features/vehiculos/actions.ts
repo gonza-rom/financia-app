@@ -151,6 +151,7 @@ export async function actualizarSeccionAction(
     });
 
     revalidateTag("vehiculos");
+    revalidatePath(`/vehiculos/${vehiculoId}`);
     return { success: true, data: undefined };
   } catch (err) {
     console.error("[actualizarSeccion]", err);
@@ -295,22 +296,47 @@ export async function actualizarGastoVehiculoAction(
   try {
     const usuario = await getCurrentUser();
 
-    await prisma.gastoVehiculo.updateMany({
+    const gasto = await prisma.gastoVehiculo.findFirst({
       where: { id, vehiculo: { id: vehiculoId, usuarioId: usuario.id } },
-      data: {
-        ...(data.monto !== undefined && { monto: data.monto }),
-        ...(data.fecha !== undefined && { fecha: data.fecha }),
-        ...(data.descripcion !== undefined && { descripcion: data.descripcion.trim() }),
-        ...(data.notas !== undefined && { notas: data.notas?.trim() || null }),
-        ...(data.kilometraje !== undefined && { kilometraje: data.kilometraje }),
-        ...(data.litros !== undefined && { litros: data.litros }),
-        ...(data.precioPorUnidad !== undefined && { precioPorUnidad: data.precioPorUnidad }),
-        ...(data.vencimiento !== undefined && { vencimiento: data.vencimiento }),
-        ...(data.proximoKm !== undefined && { proximoKm: data.proximoKm }),
-      },
     });
+    if (!gasto) return { success: false, error: "Gasto no encontrado." };
+
+    const cambioMontoDescoFecha = data.monto !== undefined || data.descripcion !== undefined || data.fecha !== undefined;
+
+    await prisma.$transaction([
+      prisma.gastoVehiculo.update({
+        where: { id },
+        data: {
+          ...(data.monto !== undefined && { monto: data.monto }),
+          ...(data.fecha !== undefined && { fecha: data.fecha }),
+          ...(data.descripcion !== undefined && { descripcion: data.descripcion.trim() }),
+          ...(data.notas !== undefined && { notas: data.notas?.trim() || null }),
+          ...(data.kilometraje !== undefined && { kilometraje: data.kilometraje }),
+          ...(data.litros !== undefined && { litros: data.litros }),
+          ...(data.precioPorUnidad !== undefined && { precioPorUnidad: data.precioPorUnidad }),
+          ...(data.vencimiento !== undefined && { vencimiento: data.vencimiento }),
+          ...(data.proximoKm !== undefined && { proximoKm: data.proximoKm }),
+        },
+      }),
+      ...(gasto.transaccionId && cambioMontoDescoFecha
+        ? [prisma.transaccion.update({
+            where: { id: gasto.transaccionId },
+            data: {
+              ...(data.monto !== undefined && { monto: data.monto }),
+              ...(data.descripcion !== undefined && { descripcion: data.descripcion.trim() }),
+              ...(data.fecha !== undefined && { fecha: data.fecha }),
+            },
+          })]
+        : []),
+    ]);
 
     revalidateTag("vehiculos");
+    revalidatePath(`/vehiculos/${vehiculoId}`);
+    if (gasto.transaccionId && cambioMontoDescoFecha) {
+      revalidateTag("transacciones");
+      revalidatePath("/dashboard");
+      revalidatePath("/transactions");
+    }
     return { success: true, data: undefined };
   } catch (err) {
     console.error("[actualizarGastoVehiculo]", err);
