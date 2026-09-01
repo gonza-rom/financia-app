@@ -32,7 +32,7 @@ interface FormValues {
   descripcion: string;
   fechaVencimiento: string;
   categoriaId: string | undefined;
-  cuentaId: string | undefined;
+  cuentaId: string | null | undefined;
   fechaInicioCuotas: string; // "YYYY-MM-DD" en lugar de "YYYY-MM"
 }
 

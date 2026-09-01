@@ -13,8 +13,11 @@ export type ProyectoConCobros = Omit<Proyecto, 'montoTotal'> & {
   montoTotal: number | null;
   cliente: Cliente | null;
   cobros: CobroSerializado[];
+  gastos: GastoEmpresaSerializado[];
   totalCobrado: number;
   totalPendiente: number;
+  totalGastado: number;
+  gananciaNeta: number;
 };
 
 export type ClienteConProyectos = Cliente & {
@@ -76,5 +79,6 @@ export interface FormularioGastoEmpresa {
   notas?: string;
   transferirAPersonal?: boolean;
   categoriaId?: string;
-  cuentaId?: string;
+  cuentaId?: string | null;
+  proyectoId?: string;
 }

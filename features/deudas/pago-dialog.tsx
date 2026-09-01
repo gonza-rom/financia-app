@@ -34,7 +34,7 @@ export function PagoDialog({ deuda, categorias = [], cuentas = [], open, onOpenC
   const [monto, setMonto] = useState("");
   const [notas, setNotas] = useState("");
   const [categoriaId, setCategoriaId] = useState<string | undefined>();
-  const [cuentaId, setCuentaId] = useState<string | undefined>();
+  const [cuentaId, setCuentaId] = useState<string | null | undefined>();
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 

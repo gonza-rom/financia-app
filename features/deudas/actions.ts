@@ -21,7 +21,7 @@ type CrearDeudaInput = {
   tieneCuotas: boolean;
   cantidadCuotas?: number | null;
   categoriaId?: string; // ← nuevo
-  cuentaId?: string;
+  cuentaId?: string | null;
   fechaInicioCuotas?: Date | null;
 };
 
@@ -126,7 +126,7 @@ export async function registrarPagoDeuda(
   monto: number,
   notas?: string,
   categoriaId?: string,   // ← nuevo parámetro
-  cuentaId?: string,
+  cuentaId?: string | null,
 ): Promise<ResultadoAccion> {
   try {
     const usuario = await getCurrentUser();
@@ -328,7 +328,7 @@ export async function actualizarDeuda(input: {
 export async function marcarDeudaPagada(
   id: string,
   categoriaId?: string,   // ← nuevo parámetro
-  cuentaId?: string,
+  cuentaId?: string | null,
 ): Promise<ResultadoAccion> {
   try {
     const usuario = await getCurrentUser();
@@ -436,7 +436,7 @@ export async function marcarCuotaPagada(
   cuotaId: string,
   deudaId: string,
   categoriaId?: string,  // ← agregar
-  cuentaId?: string,
+  cuentaId?: string | null,
 ): Promise<ResultadoAccion> {
   try {
     const usuario = await getCurrentUser();

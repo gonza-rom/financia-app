@@ -13,8 +13,8 @@ export type CuentaSimple = {
 
 interface CuentaSelectProps {
   cuentas: CuentaSimple[];
-  value?: string;
-  onChange: (id: string | undefined) => void;
+  value?: string | null;
+  onChange: (id: string | null) => void;
   disabled?: boolean;
   label?: string;
 }
@@ -29,7 +29,7 @@ export function CuentaSelect({ cuentas, value, onChange, disabled, label = "Cuen
       </Label>
       <Select
         value={value ?? "ninguna"}
-        onValueChange={(v) => onChange(v === "ninguna" ? undefined : v)}
+        onValueChange={(v) => onChange(v === "ninguna" ? null : v)}
         disabled={disabled}
       >
         <SelectTrigger>

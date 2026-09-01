@@ -81,7 +81,7 @@ interface MarcarPagadaDialogProps {
 
 function MarcarPagadaDialog({ deuda, categorias, cuentas, open, onOpenChange }: MarcarPagadaDialogProps) {
   const [categoriaId, setCategoriaId] = useState<string | undefined>();
-  const [cuentaId, setCuentaId] = useState<string | undefined>();
+  const [cuentaId, setCuentaId] = useState<string | null | undefined>();
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -177,7 +177,7 @@ interface PagarCuotaDialogProps {
   cuentas: CuentaSimple[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirmar: (categoriaId?: string, cuentaId?: string) => void;
+  onConfirmar: (categoriaId?: string, cuentaId?: string | null) => void;
   isPending: boolean;
 }
 
@@ -185,7 +185,7 @@ function PagarCuotaDialog({
   deuda, cuota, categorias, cuentas, open, onOpenChange, onConfirmar, isPending,
 }: PagarCuotaDialogProps) {
   const [categoriaId, setCategoriaId] = useState<string | undefined>();
-  const [cuentaId, setCuentaId] = useState<string | undefined>();
+  const [cuentaId, setCuentaId] = useState<string | null | undefined>();
 
   const categoriasRelevantes = categorias.filter((c) =>
     deuda.tipo === "cobrar" ? c.tipo === "INGRESO" : c.tipo === "GASTO"
@@ -312,7 +312,7 @@ function DeudaRow({ deuda, categorias, cuentas }: { deuda: Deuda; categorias: Ca
     setCuotaDialogOpen(true);
   }
 
-  function handleConfirmarCuota(categoriaId?: string, cuentaId?: string) {
+  function handleConfirmarCuota(categoriaId?: string, cuentaId?: string | null) {
     if (!cuotaPendiente) return;
     setCuotaDialogOpen(false);
     startTransition(async () => {

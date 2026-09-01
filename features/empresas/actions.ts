@@ -265,7 +265,7 @@ export async function confirmarCobroAction(
   empresaId: string,
   transferirAPersonal: boolean,
   categoriaId?: string,
-  cuentaId?: string
+  cuentaId?: string | null
 ): Promise<Resultado> {
   try {
     const usuario = await getCurrentUser();
@@ -361,6 +361,10 @@ export async function crearGastoEmpresaAction(
     if (data.cuentaId && !(await validarCuenta(usuario.id, data.cuentaId))) {
       return { success: false, error: "Cuenta no encontrada." };
     }
+    if (data.proyectoId) {
+      const proyecto = await prisma.proyecto.findFirst({ where: { id: data.proyectoId, empresaId } });
+      if (!proyecto) return { success: false, error: "Proyecto no encontrado." };
+    }
 
     let transaccionId: string | undefined;
 
@@ -402,6 +406,7 @@ export async function crearGastoEmpresaAction(
         fecha: data.fecha,
         notas: data.notas ?? null,
         empresaId,
+        ...(data.proyectoId && { proyectoId: data.proyectoId }),
         ...(transaccionId && { transaccionId }),
       },
     });

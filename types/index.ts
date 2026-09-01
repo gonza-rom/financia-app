@@ -64,7 +64,7 @@ export interface FormularioTransaccion {
   fecha: Date;
   categoriaId: string;
   notas?: string;
-  cuentaId?: string;
+  cuentaId?: string | null;
 }
 
 export interface FormularioCategoria {

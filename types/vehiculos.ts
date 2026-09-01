@@ -52,7 +52,7 @@ export interface FormularioGastoVehiculo {
   precioPorUnidad?: number;
   vencimiento?: Date;
   proximoKm?: number;
-  cuentaId?: string;
+  cuentaId?: string | null;
 }
 
 export const ICONOS_SECCION = [

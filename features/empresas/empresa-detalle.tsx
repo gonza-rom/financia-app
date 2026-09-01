@@ -12,7 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
   Building2, Plus, Check, Trash2, ArrowLeft,
-  TrendingUp, TrendingDown, Users, FolderOpen, Pencil,
+  TrendingUp, TrendingDown, Users, FolderOpen, Pencil, Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -136,7 +136,7 @@ function ConfirmarCobroDialog({
   const [isPending, startTransition] = useTransition();
   const [transferir, setTransferir] = useState(true);
   const [categoriaId, setCategoriaId] = useState(categorias.find((c) => c.tipo === "INGRESO")?.id ?? "");
-  const [cuentaId, setCuentaId] = useState<string | undefined>();
+  const [cuentaId, setCuentaId] = useState<string | null | undefined>();
   const { toast } = useToast();
   const { Dialog, DialogContent, DialogHeader, DialogTitle } = require("@/components/ui/dialog");
 
@@ -200,6 +200,7 @@ function ProyectoCard({
   moneda: string;
 }) {
   const [cobroOpen, setCobroOpen] = useState(false);
+  const [gastoOpen, setGastoOpen] = useState(false);
   const [editandoOpen, setEditandoOpen] = useState(false);
   const [expandido, setExpandido] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -239,11 +240,24 @@ function ProyectoCard({
               {proyecto.totalPendiente > 0 && (
                 <p className="text-xs text-amber-400">{formatCurrency(proyecto.totalPendiente, moneda)} pendiente</p>
               )}
+              {proyecto.totalGastado > 0 && (
+                <p className="text-xs text-expense">
+                  −{formatCurrency(proyecto.totalGastado, moneda)} gastado
+                  {" · "}
+                  <span className={proyecto.gananciaNeta >= 0 ? "text-income" : "text-expense"}>
+                    {formatCurrency(proyecto.gananciaNeta, moneda)} neto
+                  </span>
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-1 shrink-0">
               {/* Botón agregar cobro */}
               <Button variant="ghost" size="icon" className="size-7" onClick={() => setCobroOpen(true)} title="Agregar cobro">
                 <Plus className="size-3.5" />
+              </Button>
+              {/* Botón agregar gasto */}
+              <Button variant="ghost" size="icon" className="size-7" onClick={() => setGastoOpen(true)} title="Agregar gasto">
+                <Wallet className="size-3.5" />
               </Button>
               {/* Botón editar */}
               <Button variant="ghost" size="icon" className="size-7" onClick={() => setEditandoOpen(true)} title="Editar proyecto">
@@ -260,8 +274,8 @@ function ProyectoCard({
               >
                 <Trash2 className="size-3.5" />
               </Button>
-              {/* Expandir cobros */}
-              <Button variant="ghost" size="icon" className="size-7" onClick={() => setExpandido(!expandido)} title="Ver cobros">
+              {/* Expandir cobros y gastos */}
+              <Button variant="ghost" size="icon" className="size-7" onClick={() => setExpandido(!expandido)} title="Ver cobros y gastos">
                 <span className="text-xs">{expandido ? "▲" : "▼"}</span>
               </Button>
             </div>
@@ -276,7 +290,25 @@ function ProyectoCard({
           </div>
         )}
 
+        {expandido && proyecto.gastos.length > 0 && (
+          <div className="border-t border-border divide-y divide-border">
+            {proyecto.gastos.map((gasto) => (
+              <GastoRow key={gasto.id} gasto={gasto} empresaId={empresaId} moneda={moneda} />
+            ))}
+          </div>
+        )}
+
         <NuevoCobroDialog open={cobroOpen} onOpenChange={setCobroOpen} proyectoId={proyecto.id} empresaId={empresaId} />
+        <NuevoGastoEmpresaDialog
+          open={gastoOpen}
+          onOpenChange={setGastoOpen}
+          empresaId={empresaId}
+          categorias={categorias}
+          cuentas={cuentas}
+          moneda={moneda}
+          proyectos={[{ id: proyecto.id, nombre: proyecto.nombre }]}
+          proyectoIdInicial={proyecto.id}
+        />
       </div>
 
       {editandoOpen && (
@@ -342,7 +374,14 @@ function ClienteRow({
   );
 }
 
-function GastoRow({ gasto, empresaId, moneda }: { gasto: GastoEmpresaSerializado; empresaId: string; moneda: string }) {
+function GastoRow({
+  gasto, empresaId, moneda, proyectoNombre,
+}: {
+  gasto: GastoEmpresaSerializado;
+  empresaId: string;
+  moneda: string;
+  proyectoNombre?: string;
+}) {
   const [isPending, startTransition] = useTransition();
   const [editarOpen, setEditarOpen] = useState(false);
   const { toast } = useToast();
@@ -360,7 +399,10 @@ function GastoRow({ gasto, empresaId, moneda }: { gasto: GastoEmpresaSerializado
     <div className="flex items-center gap-4 px-5 py-3.5 group flex-wrap sm:flex-nowrap">
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium">{gasto.descripcion}</p>
-        <p className="text-xs text-muted-foreground">{formatShortDate(gasto.fecha)}</p>
+        <p className="text-xs text-muted-foreground">
+          {formatShortDate(gasto.fecha)}
+          {proyectoNombre && <> · {proyectoNombre}</>}
+        </p>
       </div>
       <div className="flex items-center gap-2 ml-auto sm:ml-0">
         <p className="text-sm font-semibold text-expense">{formatCurrency(gasto.monto, moneda)}</p>
@@ -392,6 +434,8 @@ export function EmpresaDetallePage({
   const [proyectoOpen, setProyectoOpen] = useState(false);
   const [clienteOpen, setClienteOpen] = useState(false);
   const [gastoOpen, setGastoOpen] = useState(false);
+
+  const nombreProyecto = Object.fromEntries(empresa.proyectos.map((p) => [p.id, p.nombre]));
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -495,7 +539,13 @@ export function EmpresaDetallePage({
           ) : (
             <div className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
               {empresa.gastos.map((g) => (
-                <GastoRow key={g.id} gasto={g} empresaId={empresa.id} moneda={moneda} />
+                <GastoRow
+                  key={g.id}
+                  gasto={g}
+                  empresaId={empresa.id}
+                  moneda={moneda}
+                  proyectoNombre={g.proyectoId ? nombreProyecto[g.proyectoId] : undefined}
+                />
               ))}
             </div>
           )}
@@ -504,7 +554,15 @@ export function EmpresaDetallePage({
 
       <NuevoProyectoDialog open={proyectoOpen} onOpenChange={setProyectoOpen} empresaId={empresa.id} clientes={empresa.clientes} />
       <NuevoClienteDialog open={clienteOpen} onOpenChange={setClienteOpen} empresaId={empresa.id} />
-      <NuevoGastoEmpresaDialog open={gastoOpen} onOpenChange={setGastoOpen} empresaId={empresa.id} categorias={categorias} cuentas={cuentas} moneda={moneda} />
+      <NuevoGastoEmpresaDialog
+        open={gastoOpen}
+        onOpenChange={setGastoOpen}
+        empresaId={empresa.id}
+        categorias={categorias}
+        cuentas={cuentas}
+        moneda={moneda}
+        proyectos={empresa.proyectos.map((p) => ({ id: p.id, nombre: p.nombre }))}
+      />
     </div>
   );
 }
