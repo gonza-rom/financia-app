@@ -252,6 +252,7 @@ model Proyecto {
   empresa       Empresa           @relation(fields: [empresaId], references: [id], onDelete: Cascade)
   cliente       Cliente?          @relation(fields: [clienteId], references: [id], onDelete: SetNull)
   cobros        CobroProyecto[]
+  gastos        GastoEmpresa[]
 
   @@index([empresaId])
   @@index([clienteId])
@@ -287,14 +288,17 @@ model GastoEmpresa {
   monto         Decimal   @db.Decimal(12, 2)
   fecha         DateTime
   empresaId     String    @map("empresa_id")
+  proyectoId    String?   @map("proyecto_id")
   transaccionId String?   @unique @map("transaccion_id")
   notas         String?
   creadoEn      DateTime  @default(now()) @map("creado_en")
   actualizadoEn DateTime  @updatedAt @map("actualizado_en")
   empresa       Empresa   @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  proyecto      Proyecto? @relation(fields: [proyectoId], references: [id], onDelete: SetNull)
   transaccion   Transaccion? @relation(fields: [transaccionId], references: [id], onDelete: SetNull)
 
   @@index([empresaId])
+  @@index([proyectoId])
   @@map("gastos_empresa")
 }
 

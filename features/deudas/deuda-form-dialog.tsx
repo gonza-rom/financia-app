@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { crearDeuda } from "./actions";
 import type { Categoria } from "@/types";
 import { CategoriaCombobox } from "@/features/categories/categoria-combobox";
+import { CuentaSelect, type CuentaSimple } from "@/features/cuentas/cuenta-select";
 
 type TipoDeuda = "cobrar" | "pagar";
 type Moneda = "ARS" | "USD" | "EUR";
@@ -31,6 +32,7 @@ interface FormValues {
   descripcion: string;
   fechaVencimiento: string;
   categoriaId: string | undefined;
+  cuentaId: string | null | undefined;
   fechaInicioCuotas: string; // "YYYY-MM-DD" en lugar de "YYYY-MM"
 }
 
@@ -50,6 +52,7 @@ const INITIAL: FormValues = {
   descripcion: "",
   fechaVencimiento: "",
   categoriaId: undefined,
+  cuentaId: undefined,
   fechaInicioCuotas: "", // mes actual por defecto
 };
 
@@ -59,6 +62,7 @@ interface DeudaFormDialogProps {
   contraparteInicial?: string;
   empresaIdInicial?: string;
   categorias?: Categoria[];
+  cuentas?: CuentaSimple[];
 }
 
 export function DeudaFormDialog({
@@ -67,6 +71,7 @@ export function DeudaFormDialog({
   contraparteInicial = "",
   empresaIdInicial,
   categorias = [],
+  cuentas = [],
 }: DeudaFormDialogProps) {
   const [form, setForm] = useState<FormValues>({
     ...INITIAL,
@@ -112,6 +117,7 @@ export function DeudaFormDialog({
           ? new Date(form.fechaVencimiento)
           : null,
         categoriaId: form.categoriaId,
+        cuentaId: form.cuentaId,
         fechaInicioCuotas: form.tieneCuotas && form.fechaInicioCuotas
           ? new Date(form.fechaInicioCuotas)
           : null,
@@ -289,6 +295,14 @@ export function DeudaFormDialog({
                   allowNone
                   noneLabel="Sin categoría (no registra transacción)"
                 />
+                {form.categoriaId && (
+                  <CuentaSelect
+                    cuentas={cuentas}
+                    value={form.cuentaId}
+                    onChange={(id) => set("cuentaId", id)}
+                    disabled={isPending}
+                  />
+                )}
                 {form.categoriaId && form.montoTotal > 0 && (
                   <p className="text-xs text-muted-foreground">
                     Se registrará un {form.tipo === "cobrar" ? "gasto" : "ingreso"} de{" "}

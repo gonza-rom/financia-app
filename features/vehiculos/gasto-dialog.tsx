@@ -13,11 +13,13 @@ import { crearGastoVehiculoAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
 import { parseFechaLocal, formatFechaInput } from "@/lib/utils-fecha";
 import { CategoriaCombobox } from "@/features/categories/categoria-combobox";
+import { CuentaSelect, type CuentaSimple } from "@/features/cuentas/cuenta-select";
 
 interface GastoDialogProps {
   vehiculoId: string;
   seccion: SeccionConGastos;
   categorias: Categoria[];
+  cuentas: CuentaSimple[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -38,7 +40,7 @@ function detectarTipo(nombreSeccion: string) {
   return "generico";
 }
 
-export function GastoDialog({ vehiculoId, seccion, categorias, open, onOpenChange }: GastoDialogProps) {
+export function GastoDialog({ vehiculoId, seccion, categorias, cuentas, open, onOpenChange }: GastoDialogProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const tipo = detectarTipo(seccion.nombre);
@@ -233,6 +235,14 @@ export function GastoDialog({ vehiculoId, seccion, categorias, open, onOpenChang
                 />
               )}
             </div>
+          )}
+
+          {!pagarEnCuotas && registrarEnFinanzas && (
+            <CuentaSelect
+              cuentas={cuentas}
+              value={watch("cuentaId")}
+              onChange={(id) => setValue("cuentaId", id)}
+            />
           )}
 
           <div className="flex gap-3 pt-1">

@@ -54,12 +54,18 @@ function serializarProyecto(p: any): ProyectoConCobros {
     .filter((c: any) => c.estado === "PENDIENTE")
     .reduce((acc: number, c: any) => acc + c.monto, 0);
 
+  const gastos = (p.gastos ?? []).map((g: any) => ({ ...g, monto: Number(g.monto) }));
+  const totalGastado = gastos.reduce((acc: number, g: any) => acc + g.monto, 0);
+
   return {
     ...p,
     montoTotal: p.montoTotal ? Number(p.montoTotal) : null,
     cobros,
+    gastos,
     totalCobrado,
     totalPendiente,
+    totalGastado,
+    gananciaNeta: totalCobrado - totalGastado,
   };
 }
 
@@ -73,13 +79,13 @@ export async function getEmpresaDetalle(
       clientes: {
         include: {
           proyectos: {
-            include: { cobros: true, cliente: true },
+            include: { cobros: true, cliente: true, gastos: { orderBy: { fecha: "desc" } } },
             orderBy: { creadoEn: "desc" },
           },
         },
       },
       proyectos: {
-        include: { cobros: true, cliente: true },
+        include: { cobros: true, cliente: true, gastos: { orderBy: { fecha: "desc" } } },
         orderBy: { creadoEn: "desc" },
       },
       gastos: { orderBy: { fecha: "desc" } },

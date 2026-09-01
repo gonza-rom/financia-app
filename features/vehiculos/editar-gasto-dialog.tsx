@@ -11,11 +11,13 @@ import type { FormularioGastoVehiculo, GastoVehiculoSerializado, SeccionConGasto
 import { actualizarGastoVehiculoAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
 import { parseFechaLocal, formatFechaInput } from "@/lib/utils-fecha";
+import { CuentaSelect, type CuentaSimple } from "@/features/cuentas/cuenta-select";
 
 interface EditarGastoDialogProps {
   vehiculoId: string;
   seccion: SeccionConGastos;
   gasto: GastoVehiculoSerializado;
+  cuentas: CuentaSimple[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -28,12 +30,12 @@ function detectarTipo(nombreSeccion: string) {
   return "generico";
 }
 
-export function EditarGastoDialog({ vehiculoId, seccion, gasto, open, onOpenChange }: EditarGastoDialogProps) {
+export function EditarGastoDialog({ vehiculoId, seccion, gasto, cuentas, open, onOpenChange }: EditarGastoDialogProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const tipo = detectarTipo(seccion.nombre);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormularioGastoVehiculo>({
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<FormularioGastoVehiculo>({
     defaultValues: {
       monto: gasto.monto,
       fecha: gasto.fecha,
@@ -44,6 +46,7 @@ export function EditarGastoDialog({ vehiculoId, seccion, gasto, open, onOpenChan
       precioPorUnidad: gasto.precioPorUnidad ?? undefined,
       vencimiento: gasto.vencimiento ?? undefined,
       proximoKm: gasto.proximoKm ?? undefined,
+      cuentaId: gasto.transaccionCuentaId ?? undefined,
     },
   });
 
@@ -142,10 +145,17 @@ export function EditarGastoDialog({ vehiculoId, seccion, gasto, open, onOpenChan
           </div>
 
           {gasto.transaccionId && (
-            <p className="text-xs text-muted-foreground">
-              Este gasto tiene una transacción personal vinculada — el monto, la fecha y la
-              descripción se van a actualizar también ahí.
-            </p>
+            <>
+              <CuentaSelect
+                cuentas={cuentas}
+                value={watch("cuentaId")}
+                onChange={(id) => setValue("cuentaId", id)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Este gasto tiene una transacción personal vinculada — el monto, la fecha, la
+                descripción y la cuenta se van a actualizar también ahí.
+              </p>
+            </>
           )}
 
           <div className="flex gap-3 pt-1">

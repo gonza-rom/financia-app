@@ -8,7 +8,8 @@ import { SeccionCard } from "@/features/vehiculos/seccion-card";
 import { NuevaSeccionDialogWrapper } from "@/features/vehiculos/nueva-seccion-dialog-wrapper";
 import { formatCurrency } from "@/lib/utils";
 import { ArrowLeft, Car, Gauge } from "lucide-react";
-import { getCategorias } from "@/features/categories/queries";  // ← cambiar
+import { getCategorias } from "@/features/categories/queries";
+import { getCuentas } from "@/features/cuentas/queries";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -24,9 +25,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function VehiculoDetallePage({ params }: PageProps) {
   const { id } = await params;
   const usuario = await getCurrentUser();
-  const [vehiculo, categorias] = await Promise.all([   // ← agregar
+  const [vehiculo, categorias, cuentas] = await Promise.all([
     getVehiculoConSecciones(id, usuario.id),
-     getCategorias(usuario.id),                   // ← agregar
+    getCategorias(usuario.id),
+    getCuentas(usuario.id),
   ]);
 
   if (!vehiculo) notFound();
@@ -98,7 +100,8 @@ export default async function VehiculoDetallePage({ params }: PageProps) {
                 vehiculoId={vehiculo.id}
                 seccion={seccion}
                 moneda={usuario.moneda}
-                categorias={categorias}   // ← agregar
+                categorias={categorias}
+                cuentas={cuentas}
               />
             ))}
           </div>

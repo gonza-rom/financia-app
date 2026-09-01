@@ -110,7 +110,7 @@ export function EditTransactionDialog({
             </Label>
             <Select
               defaultValue={transaccion.cuentaId ?? "ninguna"}
-              onValueChange={(v) => setValue("cuentaId", v === "ninguna" ? undefined : v)}
+              onValueChange={(v) => setValue("cuentaId", v === "ninguna" ? null : v)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Sin cuenta específica" />

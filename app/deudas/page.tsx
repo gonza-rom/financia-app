@@ -3,6 +3,7 @@ import { DeudaList } from "@/features/deudas/deuda-list";
 import { DeudaHeader } from "@/features/deudas/deuda-header";
 import { getDeudas } from "@/features/deudas/queries";
 import { getCategorias } from "@/features/categories/queries";
+import { getCuentas } from "@/features/cuentas/queries";
 import { getCurrentUser } from "@/lib/auth";
 import { getProximoCierre } from "@/lib/utils";
 
@@ -11,9 +12,10 @@ export const metadata = { title: "Deudas" };
 export default async function DeudasPage() {
   const usuario = await getCurrentUser();
 
-  const [deudas, categorias] = await Promise.all([
+  const [deudas, categorias, cuentas] = await Promise.all([
     getDeudas(),
     getCategorias(usuario.id),
+    getCuentas(usuario.id),
   ]);
 
   const activas = deudas.filter((d) => d.estado !== "pagada");
@@ -60,7 +62,7 @@ export default async function DeudasPage() {
         fechaCierre={fechaCierre}
         vencidas={vencidas}
       />
-      <DeudaList deudas={deudas} categorias={categorias} />
+      <DeudaList deudas={deudas} categorias={categorias} cuentas={cuentas} />
     </div>
   );
 }

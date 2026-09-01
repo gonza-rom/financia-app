@@ -3,6 +3,7 @@
 
 import { DailyChart } from "./daily-chart";
 import { WeeklySummary } from "./weekly-summary";
+import { HoyResumen } from "./hoy-resumen";
 import type { DatoDiario, ResumenSemanal } from "./daily-chart-query";
 
 interface StatsSectionProps {
@@ -13,8 +14,12 @@ interface StatsSectionProps {
 }
 
 export function StatsSection({ dias, semana, moneda, mesLabel }: StatsSectionProps) {
+  const hoy = dias[dias.length - 1];
+
   return (
     <div className="rounded-xl border border-border bg-card p-5">
+      {hoy && <HoyResumen ingresoHoy={hoy.ingreso} gastoHoy={hoy.gasto} moneda={moneda} />}
+
       <div className="flex items-center justify-between mb-1">
         <div>
           <h2 className="text-sm font-semibold">Movimientos diarios</h2>
