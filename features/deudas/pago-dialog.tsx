@@ -14,6 +14,7 @@ import { registrarPagoDeuda } from "./actions";
 import type { Deuda } from "@/types/deudas";
 import type { Categoria } from "@/types";
 import { CategoriaCombobox } from "@/features/categories/categoria-combobox";
+import { CuentaSelect, type CuentaSimple } from "@/features/cuentas/cuenta-select";
 
 function fmt(n: number, moneda: string) {
   return new Intl.NumberFormat("es-AR", {
@@ -24,14 +25,16 @@ function fmt(n: number, moneda: string) {
 interface PagoDialogProps {
   deuda: Deuda;
   categorias: Categoria[];
+  cuentas: CuentaSimple[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function PagoDialog({ deuda, categorias = [], open, onOpenChange }: PagoDialogProps) {
+export function PagoDialog({ deuda, categorias = [], cuentas = [], open, onOpenChange }: PagoDialogProps) {
   const [monto, setMonto] = useState("");
   const [notas, setNotas] = useState("");
   const [categoriaId, setCategoriaId] = useState<string | undefined>();
+  const [cuentaId, setCuentaId] = useState<string | undefined>();
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -50,6 +53,7 @@ export function PagoDialog({ deuda, categorias = [], open, onOpenChange }: PagoD
       setMonto("");
       setNotas("");
       setCategoriaId(undefined);
+      setCuentaId(undefined);
     }
   }, [open]);
 
@@ -79,6 +83,7 @@ export function PagoDialog({ deuda, categorias = [], open, onOpenChange }: PagoD
         montoNum,
         notas.trim() || undefined,
         categoriaId,
+        cuentaId,
       );
       if (result.success) {
         toast({ title: "Pago registrado ✓" });
@@ -191,6 +196,14 @@ export function PagoDialog({ deuda, categorias = [], open, onOpenChange }: PagoD
                 disabled={isPending}
                 allowNone
                 noneLabel="Sin categoría (no registra transacción)"
+              />
+            )}
+            {categoriaId && (
+              <CuentaSelect
+                cuentas={cuentas}
+                value={cuentaId}
+                onChange={setCuentaId}
+                disabled={isPending}
               />
             )}
             {categoriaId && monto && !isNaN(parseFloat(monto)) && (

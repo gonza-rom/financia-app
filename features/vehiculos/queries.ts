@@ -45,6 +45,7 @@ export async function getVehiculoConSecciones(
           gastos: {
             orderBy: { fecha: "desc" },
             take: 5,
+            include: { transaccion: { select: { cuentaId: true } } },
           },
         },
       },
@@ -74,6 +75,7 @@ export async function getVehiculoConSecciones(
         ...g,
         monto: Number(g.monto),
         precioPorUnidad: g.precioPorUnidad ? Number(g.precioPorUnidad) : null,
+        transaccionCuentaId: g.transaccion?.cuentaId ?? null,
     })),
     }));
 

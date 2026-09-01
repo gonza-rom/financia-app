@@ -76,4 +76,5 @@ export interface FormularioGastoEmpresa {
   notas?: string;
   transferirAPersonal?: boolean;
   categoriaId?: string;
+  cuentaId?: string;
 }

@@ -7,6 +7,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import type { FormularioVehiculo, FormularioSeccion, FormularioGastoVehiculo } from "@/types/vehiculos";
 import { SECCIONES_PREDEFINIDAS } from "@/types/vehiculos";
 import { generarCuotas } from "@/features/deudas/cuotas";
+import { validarCuenta, ajustarSaldoCuenta, revertirSaldoCuenta } from "@/lib/cuentas";
 
 type Resultado<T = void> = { success: true; data: T } | { success: false; error: string };
 
@@ -206,6 +207,9 @@ export async function crearGastoVehiculoAction(
     if (data.pagarEnCuotas && (!data.cantidadCuotas || data.cantidadCuotas < 2)) {
       return { success: false, error: "Ingresá al menos 2 cuotas." };
     }
+    if (data.cuentaId && !(await validarCuenta(usuario.id, data.cuentaId))) {
+      return { success: false, error: "Cuenta no encontrada." };
+    }
 
     const { gasto } = await prisma.$transaction(async (tx) => {
       // El gasto en cuotas y el registro inmediato en finanzas son excluyentes: si se
@@ -240,9 +244,13 @@ export async function crearGastoVehiculoAction(
             esRecurrente: false,
             usuarioId: usuario.id,
             categoriaId: data.categoriaId,
+            cuentaId: data.cuentaId ?? null,
           },
         });
         transaccionId = transaccion.id;
+        if (data.cuentaId) {
+          await ajustarSaldoCuenta(tx, data.cuentaId, "GASTO", data.monto);
+        }
       }
 
       // Crear el gasto del vehículo vinculado a la transacción o a la deuda
@@ -280,6 +288,10 @@ export async function crearGastoVehiculoAction(
     revalidatePath("/dashboard");
     revalidatePath("/transacciones");
     if (data.pagarEnCuotas) revalidatePath("/deudas");
+    if (data.cuentaId) {
+      revalidateTag("cuentas");
+      revalidatePath("/cuentas");
+    }
 
     return { success: true, data: { id: gasto.id } };
   } catch (err) {
@@ -300,11 +312,16 @@ export async function actualizarGastoVehiculoAction(
       where: { id, vehiculo: { id: vehiculoId, usuarioId: usuario.id } },
     });
     if (!gasto) return { success: false, error: "Gasto no encontrado." };
+    if (data.cuentaId && !(await validarCuenta(usuario.id, data.cuentaId))) {
+      return { success: false, error: "Cuenta no encontrada." };
+    }
 
     const cambioMontoDescoFecha = data.monto !== undefined || data.descripcion !== undefined || data.fecha !== undefined;
+    const cambioCuenta = data.cuentaId !== undefined;
+    let cuentaTocada = false;
 
-    await prisma.$transaction([
-      prisma.gastoVehiculo.update({
+    await prisma.$transaction(async (tx) => {
+      await tx.gastoVehiculo.update({
         where: { id },
         data: {
           ...(data.monto !== undefined && { monto: data.monto }),
@@ -317,25 +334,47 @@ export async function actualizarGastoVehiculoAction(
           ...(data.vencimiento !== undefined && { vencimiento: data.vencimiento }),
           ...(data.proximoKm !== undefined && { proximoKm: data.proximoKm }),
         },
-      }),
-      ...(gasto.transaccionId && cambioMontoDescoFecha
-        ? [prisma.transaccion.update({
+      });
+
+      if (gasto.transaccionId && (cambioMontoDescoFecha || cambioCuenta)) {
+        const original = await tx.transaccion.findUnique({ where: { id: gasto.transaccionId } });
+        if (original) {
+          // Revertir el efecto en la cuenta original antes de aplicar los cambios
+          if (original.cuentaId) {
+            await revertirSaldoCuenta(tx, original.cuentaId, original.tipo, Number(original.monto));
+            cuentaTocada = true;
+          }
+
+          await tx.transaccion.update({
             where: { id: gasto.transaccionId },
             data: {
               ...(data.monto !== undefined && { monto: data.monto }),
               ...(data.descripcion !== undefined && { descripcion: data.descripcion.trim() }),
               ...(data.fecha !== undefined && { fecha: data.fecha }),
+              ...(cambioCuenta && { cuentaId: data.cuentaId ?? null }),
             },
-          })]
-        : []),
-    ]);
+          });
+
+          const nuevaCuentaId = cambioCuenta ? (data.cuentaId ?? null) : original.cuentaId;
+          const nuevoMonto = data.monto !== undefined ? data.monto : Number(original.monto);
+          if (nuevaCuentaId) {
+            await ajustarSaldoCuenta(tx, nuevaCuentaId, original.tipo, nuevoMonto);
+            cuentaTocada = true;
+          }
+        }
+      }
+    });
 
     revalidateTag("vehiculos");
     revalidatePath(`/vehiculos/${vehiculoId}`);
-    if (gasto.transaccionId && cambioMontoDescoFecha) {
+    if (gasto.transaccionId && (cambioMontoDescoFecha || cambioCuenta)) {
       revalidateTag("transacciones");
       revalidatePath("/dashboard");
       revalidatePath("/transactions");
+    }
+    if (cuentaTocada) {
+      revalidateTag("cuentas");
+      revalidatePath("/cuentas");
     }
     return { success: true, data: undefined };
   } catch (err) {
@@ -368,21 +407,35 @@ export async function eliminarGastoVehiculoAction(id: string, vehiculoId: string
       }
     }
 
-    await prisma.$transaction([
-      prisma.gastoVehiculo.delete({ where: { id } }),
-      ...(gasto.transaccionId
-        ? [prisma.transaccion.deleteMany({ where: { id: gasto.transaccionId, usuarioId: usuario.id } })]
-        : []),
-      ...(nuevoKm !== undefined
-        ? [prisma.vehiculo.update({ where: { id: vehiculoId }, data: { kilometraje: nuevoKm } })]
-        : []),
-    ]);
+    let cuentaTocada = false;
+
+    await prisma.$transaction(async (tx) => {
+      if (gasto.transaccionId) {
+        const transaccion = await tx.transaccion.findUnique({ where: { id: gasto.transaccionId } });
+        if (transaccion?.cuentaId) {
+          await revertirSaldoCuenta(tx, transaccion.cuentaId, transaccion.tipo, Number(transaccion.monto));
+          cuentaTocada = true;
+        }
+      }
+
+      await tx.gastoVehiculo.delete({ where: { id } });
+      if (gasto.transaccionId) {
+        await tx.transaccion.deleteMany({ where: { id: gasto.transaccionId, usuarioId: usuario.id } });
+      }
+      if (nuevoKm !== undefined) {
+        await tx.vehiculo.update({ where: { id: vehiculoId }, data: { kilometraje: nuevoKm } });
+      }
+    });
 
     revalidateTag("vehiculos");
     if (gasto.transaccionId) {
       revalidateTag("transacciones");
       revalidatePath("/dashboard");
       revalidatePath("/transacciones");
+    }
+    if (cuentaTocada) {
+      revalidateTag("cuentas");
+      revalidatePath("/cuentas");
     }
     return { success: true, data: undefined };
   } catch (err) {

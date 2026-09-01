@@ -9,10 +9,12 @@ import { ContraparteCard } from "./contraparte-card";
 import { DeudaFormDialog } from "./deuda-form-dialog";
 import type { Deuda } from "@/types/deudas";
 import type { Categoria } from "@/types";
+import type { CuentaSimple } from "@/features/cuentas/cuenta-select";
 
 interface DeudaListProps {
   deudas: Deuda[];
   categorias: Categoria[];   // ← nuevo
+  cuentas: CuentaSimple[];
 }
 
 function groupByContraparte(deudas: Deuda[]) {
@@ -35,7 +37,7 @@ function groupByContraparte(deudas: Deuda[]) {
   });
 }
 
-export function DeudaList({ deudas, categorias }: DeudaListProps) {
+export function DeudaList({ deudas, categorias, cuentas }: DeudaListProps) {
   const [open, setOpen] = useState(false);
 
   const cobrarDeudas = useMemo(() => deudas.filter((d) => d.tipo === "cobrar"), [deudas]);
@@ -84,6 +86,7 @@ export function DeudaList({ deudas, categorias }: DeudaListProps) {
                 empresaId={g.empresaId}
                 deudas={g.deudas}
                 categorias={categorias}   // ← pasar
+                cuentas={cuentas}
               />
             ))
           )}
@@ -100,13 +103,14 @@ export function DeudaList({ deudas, categorias }: DeudaListProps) {
                 empresaId={g.empresaId}
                 deudas={g.deudas}
                 categorias={categorias}   // ← pasar
+                cuentas={cuentas}
               />
             ))
           )}
         </TabsContent>
       </Tabs>
 
-      <DeudaFormDialog open={open} onOpenChange={setOpen} categorias={categorias} />
+      <DeudaFormDialog open={open} onOpenChange={setOpen} categorias={categorias} cuentas={cuentas} />
     </>
   );
 }

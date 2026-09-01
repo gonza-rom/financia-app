@@ -16,15 +16,17 @@ import { EditarGastoDialog } from "./editar-gasto-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Categoria } from "@prisma/client";
+import type { CuentaSimple } from "@/features/cuentas/cuenta-select";
 
 interface SeccionCardProps {
   vehiculoId: string;
   seccion: SeccionConGastos;
   moneda: string;
   categorias: Categoria[];
+  cuentas: CuentaSimple[];
 }
 
-export function SeccionCard({ vehiculoId, seccion, moneda,categorias }: SeccionCardProps) {
+export function SeccionCard({ vehiculoId, seccion, moneda, categorias, cuentas }: SeccionCardProps) {
   const [expandido, setExpandido] = useState(false);
   const [dialogGasto, setDialogGasto] = useState(false);
   const [dialogEditarSeccion, setDialogEditarSeccion] = useState(false);
@@ -223,6 +225,7 @@ export function SeccionCard({ vehiculoId, seccion, moneda,categorias }: SeccionC
         vehiculoId={vehiculoId}
         seccion={seccion}
         categorias={categorias}
+        cuentas={cuentas}
         open={dialogGasto}
         onOpenChange={setDialogGasto}
       />
@@ -239,6 +242,7 @@ export function SeccionCard({ vehiculoId, seccion, moneda,categorias }: SeccionC
           vehiculoId={vehiculoId}
           seccion={seccion}
           gasto={gastoEditando}
+          cuentas={cuentas}
           open={!!gastoEditando}
           onOpenChange={(o) => !o && setGastoEditando(null)}
         />

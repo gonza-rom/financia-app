@@ -11,6 +11,7 @@ export type SeccionConGastos = SeccionVehiculo & {
 export type GastoVehiculoSerializado = Omit<GastoVehiculo, 'monto' | 'precioPorUnidad'> & {
   monto: number;
   precioPorUnidad: number | null;
+  transaccionCuentaId: string | null;
 };
 
 export type VehiculoConSecciones = Vehiculo & {
@@ -51,6 +52,7 @@ export interface FormularioGastoVehiculo {
   precioPorUnidad?: number;
   vencimiento?: Date;
   proximoKm?: number;
+  cuentaId?: string;
 }
 
 export const ICONOS_SECCION = [

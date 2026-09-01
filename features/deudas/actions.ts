@@ -1,11 +1,12 @@
 // features/deudas/actions.ts
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { Moneda } from "@/types/deudas";
 import { generarCuotas } from "./cuotas";
+import { validarCuenta, ajustarSaldoCuenta, revertirSaldoCuenta } from "@/lib/cuentas";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -20,6 +21,7 @@ type CrearDeudaInput = {
   tieneCuotas: boolean;
   cantidadCuotas?: number | null;
   categoriaId?: string; // ← nuevo
+  cuentaId?: string;
   fechaInicioCuotas?: Date | null;
 };
 
@@ -51,6 +53,9 @@ export async function crearDeuda(
       const categoria = await prisma.categoria.findFirst({ where: { id: input.categoriaId, usuarioId: usuario.id } });
       if (!categoria) return { success: false, error: "Categoría no encontrada." };
     }
+    if (input.cuentaId && !(await validarCuenta(usuario.id, input.cuentaId))) {
+      return { success: false, error: "Cuenta no encontrada." };
+    }
 
     const cuotas =
       input.tieneCuotas && input.cantidadCuotas && input.cantidadCuotas >= 2
@@ -78,18 +83,23 @@ export async function crearDeuda(
         const descripcion = input.tipo === "COBRAR"
           ? `Préstamo a ${input.contraparte.trim()}`
           : `Deuda con ${input.contraparte.trim()}`;
+        const tipoTx = input.tipo === "COBRAR" ? "GASTO" : "INGRESO";
 
         await tx.transaccion.create({
           data: {
             monto: input.montoTotal,
             descripcion,
-            tipo: input.tipo === "COBRAR" ? "GASTO" : "INGRESO",
+            tipo: tipoTx,
             fecha: new Date(),
             esRecurrente: false,
             usuarioId: usuario.id,
             categoriaId: input.categoriaId,
+            cuentaId: input.cuentaId ?? null,
           },
         });
+        if (input.cuentaId) {
+          await ajustarSaldoCuenta(tx, input.cuentaId, tipoTx, input.montoTotal);
+        }
       }
 
       return deuda;
@@ -98,6 +108,10 @@ export async function crearDeuda(
     revalidatePath("/deudas");
     revalidatePath("/transacciones");
     revalidatePath("/dashboard");
+    if (input.categoriaId && !input.tieneCuotas && input.cuentaId) {
+      revalidateTag("cuentas");
+      revalidatePath("/cuentas");
+    }
     return { success: true, data: { id: deuda.id } };
   } catch (error) {
     console.error("[crearDeuda]", error);
@@ -112,6 +126,7 @@ export async function registrarPagoDeuda(
   monto: number,
   notas?: string,
   categoriaId?: string,   // ← nuevo parámetro
+  cuentaId?: string,
 ): Promise<ResultadoAccion> {
   try {
     const usuario = await getCurrentUser();
@@ -128,6 +143,9 @@ export async function registrarPagoDeuda(
       const categoria = await prisma.categoria.findFirst({ where: { id: categoriaId, usuarioId: usuario.id } });
       if (!categoria) return { success: false, error: "Categoría no encontrada." };
     }
+    if (cuentaId && !(await validarCuenta(usuario.id, cuentaId))) {
+      return { success: false, error: "Cuenta no encontrada." };
+    }
 
     const montoTotalNum  = toNumber(deuda.montoTotal);
     const montoPagadoNum = toNumber(deuda.montoPagado);
@@ -143,30 +161,36 @@ export async function registrarPagoDeuda(
     const nuevoMontoPagado = montoPagadoNum + monto;
     const pagadaCompleta   = nuevoMontoPagado >= montoTotalNum - 0.01;
 
-    // Crear transacción si se pasó categoría
-    let transaccionId: string | undefined;
-    if (categoriaId) {
-      const descripcion = deuda.tipo === "COBRAR"
-        ? `Cobro de deuda — ${deuda.contraparte}`
-        : `Pago de deuda — ${deuda.contraparte}`;
+    const tipoTx = deuda.tipo === "COBRAR" ? "INGRESO" : "GASTO";
 
-      const transaccion = await prisma.transaccion.create({
-        data: {
-          monto,
-          descripcion,
-          tipo: deuda.tipo === "COBRAR" ? "INGRESO" : "GASTO",
-          fecha: new Date(),
-          notas: notas?.trim() || null,
-          esRecurrente: false,
-          usuarioId: usuario.id,
-          categoriaId,
-        },
-      });
-      transaccionId = transaccion.id;
-    }
+    await prisma.$transaction(async (tx) => {
+      // Crear transacción si se pasó categoría
+      let transaccionId: string | undefined;
+      if (categoriaId) {
+        const descripcion = deuda.tipo === "COBRAR"
+          ? `Cobro de deuda — ${deuda.contraparte}`
+          : `Pago de deuda — ${deuda.contraparte}`;
 
-    await prisma.$transaction([
-      prisma.pagoDeuda.create({
+        const transaccion = await tx.transaccion.create({
+          data: {
+            monto,
+            descripcion,
+            tipo: tipoTx,
+            fecha: new Date(),
+            notas: notas?.trim() || null,
+            esRecurrente: false,
+            usuarioId: usuario.id,
+            categoriaId,
+            cuentaId: cuentaId ?? null,
+          },
+        });
+        transaccionId = transaccion.id;
+        if (cuentaId) {
+          await ajustarSaldoCuenta(tx, cuentaId, tipoTx, monto);
+        }
+      }
+
+      await tx.pagoDeuda.create({
         data: {
           deudaId,
           monto,
@@ -174,19 +198,23 @@ export async function registrarPagoDeuda(
           fecha: new Date(),
           ...(transaccionId && { transaccionId }),
         },
-      }),
-      prisma.deuda.update({
+      });
+      await tx.deuda.update({
         where: { id: deudaId },
         data: {
           montoPagado: nuevoMontoPagado,
           ...(pagadaCompleta && { estado: "PAGADA", fechaPago: new Date() }),
         },
-      }),
-    ]);
+      });
+    });
 
     revalidatePath("/deudas");
     revalidatePath("/dashboard");
     revalidatePath("/transacciones");
+    if (categoriaId && cuentaId) {
+      revalidateTag("cuentas");
+      revalidatePath("/cuentas");
+    }
     return { success: true, data: undefined };
   } catch (error) {
     console.error("[registrarPagoDeuda]", error);
@@ -215,26 +243,40 @@ export async function eliminarPagoDeuda(
     const montoPagoNum    = toNumber(pago.monto);
     const nuevoMontoPagado = Math.max(0, montoPagadoNum - montoPagoNum);
 
-    await prisma.$transaction([
-      prisma.pagoDeuda.delete({ where: { id: pagoId } }),
-      prisma.deuda.update({
+    let cuentaTocada = false;
+
+    await prisma.$transaction(async (tx) => {
+      // Si ese pago había generado una transacción personal, se borra también —
+      // si no, quedaría un ingreso/gasto fantasma que en realidad nunca pasó.
+      if (pago.transaccionId) {
+        const transaccion = await tx.transaccion.findUnique({ where: { id: pago.transaccionId } });
+        if (transaccion?.cuentaId) {
+          await revertirSaldoCuenta(tx, transaccion.cuentaId, transaccion.tipo, Number(transaccion.monto));
+          cuentaTocada = true;
+        }
+      }
+
+      await tx.pagoDeuda.delete({ where: { id: pagoId } });
+      await tx.deuda.update({
         where: { id: deudaId },
         data: {
           montoPagado: nuevoMontoPagado,
           // Si estaba pagada y revertimos un pago, vuelve a pendiente
           ...(deuda.estado === "PAGADA" && { estado: "PENDIENTE", fechaPago: null }),
         },
-      }),
-      // Si ese pago había generado una transacción personal, se borra también —
-      // si no, quedaría un ingreso/gasto fantasma que en realidad nunca pasó.
-      ...(pago.transaccionId
-        ? [prisma.transaccion.deleteMany({ where: { id: pago.transaccionId, usuarioId: usuario.id } })]
-        : []),
-    ]);
+      });
+      if (pago.transaccionId) {
+        await tx.transaccion.deleteMany({ where: { id: pago.transaccionId, usuarioId: usuario.id } });
+      }
+    });
 
     revalidatePath("/deudas");
     revalidatePath("/dashboard");
     revalidatePath("/transacciones");
+    if (cuentaTocada) {
+      revalidateTag("cuentas");
+      revalidatePath("/cuentas");
+    }
     return { success: true, data: undefined };
   } catch (error) {
     console.error("[eliminarPagoDeuda]", error);
@@ -286,6 +328,7 @@ export async function actualizarDeuda(input: {
 export async function marcarDeudaPagada(
   id: string,
   categoriaId?: string,   // ← nuevo parámetro
+  cuentaId?: string,
 ): Promise<ResultadoAccion> {
   try {
     const usuario = await getCurrentUser();
@@ -297,56 +340,70 @@ export async function marcarDeudaPagada(
       const categoria = await prisma.categoria.findFirst({ where: { id: categoriaId, usuarioId: usuario.id } });
       if (!categoria) return { success: false, error: "Categoría no encontrada." };
     }
-
-    const montoRestante = toNumber(deuda.montoTotal) - toNumber(deuda.montoPagado);
-
-    // Crear transacción por el monto restante si se pasó categoría
-    let transaccionId: string | undefined;
-    if (categoriaId && montoRestante > 0) {
-      const descripcion = deuda.tipo === "COBRAR"
-        ? `Cobro de deuda — ${deuda.contraparte}`
-        : `Pago de deuda — ${deuda.contraparte}`;
-
-      const transaccion = await prisma.transaccion.create({
-        data: {
-          monto: montoRestante,
-          descripcion,
-          tipo: deuda.tipo === "COBRAR" ? "INGRESO" : "GASTO",
-          fecha: new Date(),
-          esRecurrente: false,
-          usuarioId: usuario.id,
-          categoriaId,
-        },
-      });
-      transaccionId = transaccion.id;
+    if (cuentaId && !(await validarCuenta(usuario.id, cuentaId))) {
+      return { success: false, error: "Cuenta no encontrada." };
     }
 
-    // Si hay monto restante, crear también el PagoDeuda
-    await prisma.$transaction([
-      ...(montoRestante > 0
-        ? [prisma.pagoDeuda.create({
-            data: {
-              deudaId: id,
-              monto: montoRestante,
-              fecha: new Date(),
-              notas: "Saldado completo",
-              ...(transaccionId && { transaccionId }),
-            },
-          })]
-        : []),
-      prisma.deuda.update({
+    const montoRestante = toNumber(deuda.montoTotal) - toNumber(deuda.montoPagado);
+    const tipoTx = deuda.tipo === "COBRAR" ? "INGRESO" : "GASTO";
+    let cuentaTocada = false;
+
+    await prisma.$transaction(async (tx) => {
+      // Crear transacción por el monto restante si se pasó categoría
+      let transaccionId: string | undefined;
+      if (categoriaId && montoRestante > 0) {
+        const descripcion = deuda.tipo === "COBRAR"
+          ? `Cobro de deuda — ${deuda.contraparte}`
+          : `Pago de deuda — ${deuda.contraparte}`;
+
+        const transaccion = await tx.transaccion.create({
+          data: {
+            monto: montoRestante,
+            descripcion,
+            tipo: tipoTx,
+            fecha: new Date(),
+            esRecurrente: false,
+            usuarioId: usuario.id,
+            categoriaId,
+            cuentaId: cuentaId ?? null,
+          },
+        });
+        transaccionId = transaccion.id;
+        if (cuentaId) {
+          await ajustarSaldoCuenta(tx, cuentaId, tipoTx, montoRestante);
+          cuentaTocada = true;
+        }
+      }
+
+      // Si hay monto restante, crear también el PagoDeuda
+      if (montoRestante > 0) {
+        await tx.pagoDeuda.create({
+          data: {
+            deudaId: id,
+            monto: montoRestante,
+            fecha: new Date(),
+            notas: "Saldado completo",
+            ...(transaccionId && { transaccionId }),
+          },
+        });
+      }
+      await tx.deuda.update({
         where: { id },
         data: {
           estado: "PAGADA",
           fechaPago: new Date(),
           montoPagado: deuda.montoTotal,
         },
-      }),
-    ]);
+      });
+    });
 
     revalidatePath("/deudas");
     revalidatePath("/dashboard");
     revalidatePath("/transacciones");
+    if (cuentaTocada) {
+      revalidateTag("cuentas");
+      revalidatePath("/cuentas");
+    }
     return { success: true, data: undefined };
   } catch (error) {
     console.error("[marcarDeudaPagada]", error);
@@ -379,6 +436,7 @@ export async function marcarCuotaPagada(
   cuotaId: string,
   deudaId: string,
   categoriaId?: string,  // ← agregar
+  cuentaId?: string,
 ): Promise<ResultadoAccion> {
   try {
     const usuario = await getCurrentUser();
@@ -393,6 +451,9 @@ export async function marcarCuotaPagada(
       const categoria = await prisma.categoria.findFirst({ where: { id: categoriaId, usuarioId: usuario.id } });
       if (!categoria) return { success: false, error: "Categoría no encontrada." };
     }
+    if (cuentaId && !(await validarCuenta(usuario.id, cuentaId))) {
+      return { success: false, error: "Cuenta no encontrada." };
+    }
 
     const cuota = deuda.cuotas.find((c) => c.id === cuotaId);
     if (!cuota || cuota.pagada) return { success: false, error: "Cuota no válida." };
@@ -402,6 +463,8 @@ export async function marcarCuotaPagada(
       .every((c) => c.pagada);
 
     const nuevoMontoPagado = toNumber(deuda.montoPagado) + toNumber(cuota.monto);
+    const tipoTx = deuda.tipo === "COBRAR" ? "INGRESO" : "GASTO";
+    let cuentaTocada = false;
 
     await prisma.$transaction(async (tx) => {
       let transaccionId: string | undefined;
@@ -412,14 +475,19 @@ export async function marcarCuotaPagada(
             descripcion: deuda.tipo === "COBRAR"
               ? `Cuota ${cuota.numero} cobrada — ${deuda.contraparte}`
               : `Cuota ${cuota.numero} pagada — ${deuda.contraparte}`,
-            tipo: deuda.tipo === "COBRAR" ? "INGRESO" : "GASTO",
+            tipo: tipoTx,
             fecha: new Date(),
             esRecurrente: false,
             usuarioId: usuario.id,
             categoriaId,
+            cuentaId: cuentaId ?? null,
           },
         });
         transaccionId = transaccion.id;
+        if (cuentaId) {
+          await ajustarSaldoCuenta(tx, cuentaId, tipoTx, toNumber(cuota.monto));
+          cuentaTocada = true;
+        }
       }
 
       await tx.cuotaDeuda.update({
@@ -438,6 +506,10 @@ export async function marcarCuotaPagada(
     revalidatePath("/deudas");
     revalidatePath("/dashboard");
     revalidatePath("/transacciones");
+    if (cuentaTocada) {
+      revalidateTag("cuentas");
+      revalidatePath("/cuentas");
+    }
     return { success: true, data: undefined };
   } catch (error) {
     console.error("[marcarCuotaPagada]", error);
@@ -464,30 +536,43 @@ export async function desmarcarCuotaPagada(
     if (!cuota || !cuota.pagada) return { success: false, error: "Cuota no válida." };
 
     const nuevoMontoPagado = Math.max(0, toNumber(deuda.montoPagado) - toNumber(cuota.monto));
+    let cuentaTocada = false;
 
-    await prisma.$transaction([
-      prisma.cuotaDeuda.update({
+    await prisma.$transaction(async (tx) => {
+      // Si esa cuota había generado una transacción personal, se borra también —
+      // si no, quedaría un ingreso/gasto fantasma que en realidad nunca pasó.
+      if (cuota.transaccionId) {
+        const transaccion = await tx.transaccion.findUnique({ where: { id: cuota.transaccionId } });
+        if (transaccion?.cuentaId) {
+          await revertirSaldoCuenta(tx, transaccion.cuentaId, transaccion.tipo, Number(transaccion.monto));
+          cuentaTocada = true;
+        }
+      }
+
+      await tx.cuotaDeuda.update({
         where: { id: cuotaId },
         data: { pagada: false, fechaPago: null, transaccionId: null },
-      }),
-      prisma.deuda.update({
+      });
+      await tx.deuda.update({
         where: { id: deudaId },
         data: {
           montoPagado: nuevoMontoPagado,
           // Si estaba marcada pagada por completar todas las cuotas, vuelve a pendiente.
           ...(deuda.estado === "PAGADA" && { estado: "PENDIENTE", fechaPago: null }),
         },
-      }),
-      // Si esa cuota había generado una transacción personal, se borra también —
-      // si no, quedaría un ingreso/gasto fantasma que en realidad nunca pasó.
-      ...(cuota.transaccionId
-        ? [prisma.transaccion.deleteMany({ where: { id: cuota.transaccionId, usuarioId: usuario.id } })]
-        : []),
-    ]);
+      });
+      if (cuota.transaccionId) {
+        await tx.transaccion.deleteMany({ where: { id: cuota.transaccionId, usuarioId: usuario.id } });
+      }
+    });
 
     revalidatePath("/deudas");
     revalidatePath("/dashboard");
     revalidatePath("/transacciones");
+    if (cuentaTocada) {
+      revalidateTag("cuentas");
+      revalidatePath("/cuentas");
+    }
     return { success: true, data: undefined };
   } catch (error) {
     console.error("[desmarcarCuotaPagada]", error);

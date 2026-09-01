@@ -32,6 +32,7 @@ import { PagoDialog } from "@/features/deudas/pago-dialog";
 import type { Deuda, EstadoDeuda } from "@/types/deudas";
 import type { Categoria } from "@/types";
 import { CategoriaCombobox } from "@/features/categories/categoria-combobox";
+import { CuentaSelect, type CuentaSimple } from "@/features/cuentas/cuenta-select";
 
 // ─── Config de estados ────────────────────────────────────────────────────────
 
@@ -73,12 +74,14 @@ function fmtDate(iso?: string) {
 interface MarcarPagadaDialogProps {
   deuda: Deuda;
   categorias: Categoria[];
+  cuentas: CuentaSimple[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-function MarcarPagadaDialog({ deuda, categorias, open, onOpenChange }: MarcarPagadaDialogProps) {
+function MarcarPagadaDialog({ deuda, categorias, cuentas, open, onOpenChange }: MarcarPagadaDialogProps) {
   const [categoriaId, setCategoriaId] = useState<string | undefined>();
+  const [cuentaId, setCuentaId] = useState<string | undefined>();
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -90,7 +93,7 @@ function MarcarPagadaDialog({ deuda, categorias, open, onOpenChange }: MarcarPag
 
   function handleConfirmar() {
     startTransition(async () => {
-      const res = await marcarDeudaPagada(deuda.id, categoriaId);
+      const res = await marcarDeudaPagada(deuda.id, categoriaId, cuentaId);
       if (res.success) {
         toast({ title: "Deuda marcada como pagada ✓" });
         onOpenChange(false);
@@ -139,6 +142,9 @@ function MarcarPagadaDialog({ deuda, categorias, open, onOpenChange }: MarcarPag
                 noneLabel="Sin categoría (no registra transacción)"
               />
             )}
+            {categoriaId && (
+              <CuentaSelect cuentas={cuentas} value={cuentaId} onChange={setCuentaId} disabled={isPending} />
+            )}
             {categoriaId && montoRestante > 0 && (
               <p className="text-xs text-muted-foreground">
                 Se creará una transacción de{" "}
@@ -168,28 +174,31 @@ interface PagarCuotaDialogProps {
   deuda: Deuda;
   cuota: { id: string; numero: number; monto: number } | null;
   categorias: Categoria[];
+  cuentas: CuentaSimple[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirmar: (categoriaId?: string) => void;
+  onConfirmar: (categoriaId?: string, cuentaId?: string) => void;
   isPending: boolean;
 }
 
 function PagarCuotaDialog({
-  deuda, cuota, categorias, open, onOpenChange, onConfirmar, isPending,
+  deuda, cuota, categorias, cuentas, open, onOpenChange, onConfirmar, isPending,
 }: PagarCuotaDialogProps) {
   const [categoriaId, setCategoriaId] = useState<string | undefined>();
+  const [cuentaId, setCuentaId] = useState<string | undefined>();
 
   const categoriasRelevantes = categorias.filter((c) =>
     deuda.tipo === "cobrar" ? c.tipo === "INGRESO" : c.tipo === "GASTO"
   );
 
   function handleConfirmar() {
-    onConfirmar(categoriaId);
+    onConfirmar(categoriaId, cuentaId);
     setCategoriaId(undefined);
+    setCuentaId(undefined);
   }
 
   function handleOpenChange(v: boolean) {
-    if (!v) setCategoriaId(undefined);
+    if (!v) { setCategoriaId(undefined); setCuentaId(undefined); }
     onOpenChange(v);
   }
 
@@ -232,6 +241,9 @@ function PagarCuotaDialog({
                 noneLabel="Sin categoría (no registra transacción)"
               />
             )}
+            {categoriaId && (
+              <CuentaSelect cuentas={cuentas} value={cuentaId} onChange={setCuentaId} />
+            )}
             {categoriaId && cuota && (
               <p className="text-xs text-muted-foreground">
                 Se creará una transacción de{" "}
@@ -257,7 +269,7 @@ function PagarCuotaDialog({
 
 // ─── Fila de una deuda individual ─────────────────────────────────────────────
 
-function DeudaRow({ deuda, categorias }: { deuda: Deuda; categorias: Categoria[] }) {
+function DeudaRow({ deuda, categorias, cuentas }: { deuda: Deuda; categorias: Categoria[]; cuentas: CuentaSimple[] }) {
   const [cuotasOpen, setCuotasOpen] = useState(false);
   const [pagosOpen, setPagosOpen] = useState(false);
   const [pagoOpen, setPagoOpen] = useState(false);
@@ -300,11 +312,11 @@ function DeudaRow({ deuda, categorias }: { deuda: Deuda; categorias: Categoria[]
     setCuotaDialogOpen(true);
   }
 
-  function handleConfirmarCuota(categoriaId?: string) {
+  function handleConfirmarCuota(categoriaId?: string, cuentaId?: string) {
     if (!cuotaPendiente) return;
     setCuotaDialogOpen(false);
     startTransition(async () => {
-      const res = await marcarCuotaPagada(cuotaPendiente.id, deuda.id, categoriaId);
+      const res = await marcarCuotaPagada(cuotaPendiente.id, deuda.id, categoriaId, cuentaId);
       if (!res.success) toast({ variant: "destructive", title: res.error });
       setCuotaPendiente(null);
     });
@@ -547,6 +559,7 @@ function DeudaRow({ deuda, categorias }: { deuda: Deuda; categorias: Categoria[]
       <PagoDialog
         deuda={deuda}
         categorias={categorias}
+        cuentas={cuentas}
         open={pagoOpen}
         onOpenChange={setPagoOpen}
       />
@@ -554,6 +567,7 @@ function DeudaRow({ deuda, categorias }: { deuda: Deuda; categorias: Categoria[]
       <MarcarPagadaDialog
         deuda={deuda}
         categorias={categorias}
+        cuentas={cuentas}
         open={marcarPagadaOpen}
         onOpenChange={setMarcarPagadaOpen}
       />
@@ -562,6 +576,7 @@ function DeudaRow({ deuda, categorias }: { deuda: Deuda; categorias: Categoria[]
         deuda={deuda}
         cuota={cuotaPendiente}
         categorias={categorias}
+        cuentas={cuentas}
         open={cuotaDialogOpen}
         onOpenChange={setCuotaDialogOpen}
         onConfirmar={handleConfirmarCuota}
@@ -578,9 +593,10 @@ interface ContraparteCardProps {
   empresaId?: string;
   deudas: Deuda[];
   categorias: Categoria[];
+  cuentas: CuentaSimple[];
 }
 
-export function ContraparteCard({ nombre, empresaId, deudas, categorias }: ContraparteCardProps) {
+export function ContraparteCard({ nombre, empresaId, deudas, categorias, cuentas }: ContraparteCardProps) {
   const [open, setOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
 
@@ -649,7 +665,7 @@ export function ContraparteCard({ nombre, empresaId, deudas, categorias }: Contr
         {open && (
           <div className="border-t border-border px-3 py-2 space-y-2">
             {deudas.map((d) => (
-              <DeudaRow key={d.id} deuda={d} categorias={categorias} />
+              <DeudaRow key={d.id} deuda={d} categorias={categorias} cuentas={cuentas} />
             ))}
             <button
               type="button"
@@ -669,6 +685,7 @@ export function ContraparteCard({ nombre, empresaId, deudas, categorias }: Contr
         contraparteInicial={nombre}
         empresaIdInicial={empresaId}
         categorias={categorias}
+        cuentas={cuentas}
       />
     </>
   );

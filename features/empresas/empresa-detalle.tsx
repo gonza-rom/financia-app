@@ -29,6 +29,7 @@ import { EditarClienteDialog } from "./editar-cliente-dialog";
 import { EditarCobroDialog } from "./editar-cobro-dialog";
 import { EditarGastoEmpresaDialog } from "./editar-gasto-empresa-dialog";
 import { CategoriaCombobox } from "@/features/categories/categoria-combobox";
+import { CuentaSelect, type CuentaSimple } from "@/features/cuentas/cuenta-select";
 
 const ESTADO_COLORS: Record<string, string> = {
   ACTIVO:     "bg-income/10 text-income",
@@ -46,11 +47,12 @@ const ESTADO_LABELS: Record<string, string> = {
 const ACCIONES_FILA = "flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0";
 
 function CobroRow({
-  cobro, empresaId, categorias, moneda,
+  cobro, empresaId, categorias, cuentas, moneda,
 }: {
   cobro: CobroSerializado;
   empresaId: string;
   categorias: Categoria[];
+  cuentas: CuentaSimple[];
   moneda: string;
 }) {
   const [isPending, startTransition] = useTransition();
@@ -108,7 +110,7 @@ function CobroRow({
       </div>
       {confirmarOpen && (
         <ConfirmarCobroDialog
-          cobro={cobro} empresaId={empresaId} categorias={categorias} moneda={moneda}
+          cobro={cobro} empresaId={empresaId} categorias={categorias} cuentas={cuentas} moneda={moneda}
           onClose={() => setConfirmarOpen(false)}
         />
       )}
@@ -122,23 +124,29 @@ function CobroRow({
 }
 
 function ConfirmarCobroDialog({
-  cobro, empresaId, categorias, moneda, onClose,
+  cobro, empresaId, categorias, cuentas, moneda, onClose,
 }: {
   cobro: CobroSerializado;
   empresaId: string;
   categorias: Categoria[];
+  cuentas: CuentaSimple[];
   moneda: string;
   onClose: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
   const [transferir, setTransferir] = useState(true);
   const [categoriaId, setCategoriaId] = useState(categorias.find((c) => c.tipo === "INGRESO")?.id ?? "");
+  const [cuentaId, setCuentaId] = useState<string | undefined>();
   const { toast } = useToast();
   const { Dialog, DialogContent, DialogHeader, DialogTitle } = require("@/components/ui/dialog");
 
   function handleConfirmar() {
     startTransition(async () => {
-      const r = await confirmarCobroAction(cobro.id, empresaId, transferir, transferir ? categoriaId : undefined);
+      const r = await confirmarCobroAction(
+        cobro.id, empresaId, transferir,
+        transferir ? categoriaId : undefined,
+        transferir ? cuentaId : undefined
+      );
       if (!r.success) toast({ variant: "destructive", title: "Error", description: r.error });
       else { toast({ title: "Cobro confirmado" }); onClose(); }
     });
@@ -159,12 +167,15 @@ function ConfirmarCobroDialog({
             <label htmlFor="transferir" className="text-sm">Transferir a finanzas personales</label>
           </div>
           {transferir && (
-            <CategoriaCombobox
-              categorias={categorias.filter((c) => c.tipo === "INGRESO")}
-              value={categoriaId}
-              onChange={setCategoriaId}
-              placeholder="Categoría de ingreso"
-            />
+            <>
+              <CategoriaCombobox
+                categorias={categorias.filter((c) => c.tipo === "INGRESO")}
+                value={categoriaId}
+                onChange={setCategoriaId}
+                placeholder="Categoría de ingreso"
+              />
+              <CuentaSelect cuentas={cuentas} value={cuentaId} onChange={setCuentaId} />
+            </>
           )}
           <div className="flex gap-3">
             <Button variant="outline" className="flex-1" onClick={onClose}>Cancelar</Button>
@@ -179,12 +190,13 @@ function ConfirmarCobroDialog({
 }
 
 function ProyectoCard({
-  proyecto, empresaId, clientes, categorias, moneda,
+  proyecto, empresaId, clientes, categorias, cuentas, moneda,
 }: {
   proyecto: ProyectoConCobros;
   empresaId: string;
   clientes: Cliente[];
   categorias: Categoria[];
+  cuentas: CuentaSimple[];
   moneda: string;
 }) {
   const [cobroOpen, setCobroOpen] = useState(false);
@@ -259,7 +271,7 @@ function ProyectoCard({
         {expandido && proyecto.cobros.length > 0 && (
           <div className="border-t border-border divide-y divide-border">
             {proyecto.cobros.map((cobro) => (
-              <CobroRow key={cobro.id} cobro={cobro} empresaId={empresaId} categorias={categorias} moneda={moneda} />
+              <CobroRow key={cobro.id} cobro={cobro} empresaId={empresaId} categorias={categorias} cuentas={cuentas} moneda={moneda} />
             ))}
           </div>
         )}
@@ -370,11 +382,12 @@ function GastoRow({ gasto, empresaId, moneda }: { gasto: GastoEmpresaSerializado
 }
 
 export function EmpresaDetallePage({
-  empresa, moneda, categorias,
+  empresa, moneda, categorias, cuentas,
 }: {
   empresa: EmpresaDetalle;
   moneda: string;
   categorias: Categoria[];
+  cuentas: CuentaSimple[];
 }) {
   const [proyectoOpen, setProyectoOpen] = useState(false);
   const [clienteOpen, setClienteOpen] = useState(false);
@@ -453,6 +466,7 @@ export function EmpresaDetallePage({
                 empresaId={empresa.id}
                 clientes={empresa.clientes}
                 categorias={categorias}
+                cuentas={cuentas}
                 moneda={moneda}
               />
             ))
@@ -490,7 +504,7 @@ export function EmpresaDetallePage({
 
       <NuevoProyectoDialog open={proyectoOpen} onOpenChange={setProyectoOpen} empresaId={empresa.id} clientes={empresa.clientes} />
       <NuevoClienteDialog open={clienteOpen} onOpenChange={setClienteOpen} empresaId={empresa.id} />
-      <NuevoGastoEmpresaDialog open={gastoOpen} onOpenChange={setGastoOpen} empresaId={empresa.id} categorias={categorias} moneda={moneda} />
+      <NuevoGastoEmpresaDialog open={gastoOpen} onOpenChange={setGastoOpen} empresaId={empresa.id} categorias={categorias} cuentas={cuentas} moneda={moneda} />
     </div>
   );
 }

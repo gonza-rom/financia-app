@@ -13,19 +13,22 @@ import { crearGastoEmpresaAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
 import { parseFechaLocal, formatFechaInput } from "@/lib/utils-fecha";
 import { CategoriaCombobox } from "@/features/categories/categoria-combobox";
+import { CuentaSelect, type CuentaSimple } from "@/features/cuentas/cuenta-select";
 
 export function NuevoGastoEmpresaDialog({
-  open, onOpenChange, empresaId, categorias, moneda,
+  open, onOpenChange, empresaId, categorias, cuentas, moneda,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   empresaId: string;
   categorias: Categoria[];
+  cuentas: CuentaSimple[];
   moneda: string;
 }) {
   const [isPending, startTransition] = useTransition();
   const [transferir, setTransferir] = useState(false);
   const [categoriaId, setCategoriaId] = useState("");
+  const [cuentaId, setCuentaId] = useState<string | undefined>();
   const { toast } = useToast();
 
   const { register, handleSubmit, reset } = useForm<FormularioGastoEmpresa>({
@@ -36,7 +39,7 @@ export function NuevoGastoEmpresaDialog({
     startTransition(async () => {
       const r = await crearGastoEmpresaAction(
         empresaId,
-        { ...data, transferirAPersonal: transferir },
+        { ...data, transferirAPersonal: transferir, cuentaId: transferir ? cuentaId : undefined },
         transferir ? categoriaId : undefined
       );
       if (r.success) {
@@ -91,12 +94,15 @@ export function NuevoGastoEmpresaDialog({
           </div>
 
           {transferir && (
-            <CategoriaCombobox
-              categorias={categorias.filter((c) => c.tipo === "GASTO")}
-              value={categoriaId}
-              onChange={setCategoriaId}
-              placeholder="Categoría de gasto personal"
-            />
+            <>
+              <CategoriaCombobox
+                categorias={categorias.filter((c) => c.tipo === "GASTO")}
+                value={categoriaId}
+                onChange={setCategoriaId}
+                placeholder="Categoría de gasto personal"
+              />
+              <CuentaSelect cuentas={cuentas} value={cuentaId} onChange={setCuentaId} />
+            </>
           )}
 
           <div className="flex gap-3 pt-1">

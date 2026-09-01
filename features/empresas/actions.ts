@@ -8,6 +8,7 @@ import type {
   FormularioEmpresa, FormularioCliente,
   FormularioProyecto, FormularioCobro, FormularioGastoEmpresa
 } from "@/types/empresas";
+import { validarCuenta, ajustarSaldoCuenta, revertirSaldoCuenta } from "@/lib/cuentas";
 
 type Resultado<T = void> = { success: true; data: T } | { success: false; error: string };
 
@@ -263,7 +264,8 @@ export async function confirmarCobroAction(
   cobroId: string,
   empresaId: string,
   transferirAPersonal: boolean,
-  categoriaId?: string
+  categoriaId?: string,
+  cuentaId?: string
 ): Promise<Resultado> {
   try {
     const usuario = await getCurrentUser();
@@ -274,6 +276,9 @@ export async function confirmarCobroAction(
     if (!cobro || cobro.proyecto.empresa.usuarioId !== usuario.id) {
       return { success: false, error: "Cobro no encontrado." };
     }
+    if (cuentaId && !(await validarCuenta(usuario.id, cuentaId))) {
+      return { success: false, error: "Cuenta no encontrada." };
+    }
 
     let transaccionId: string | undefined;
 
@@ -281,21 +286,32 @@ export async function confirmarCobroAction(
       const categoria = await prisma.categoria.findFirst({ where: { id: categoriaId, usuarioId: usuario.id } });
       if (!categoria) return { success: false, error: "Categoría no encontrada." };
 
-      const tx = await prisma.transaccion.create({
-        data: {
-          monto: cobro.monto,
-          descripcion: `${cobro.proyecto.nombre} — ${cobro.descripcion}`,
-          tipo: "INGRESO",
-          fecha: new Date(),
-          categoriaId,
-          esRecurrente: false,
-          usuarioId: usuario.id,
-        },
+      const tx = await prisma.$transaction(async (tx) => {
+        const transaccion = await tx.transaccion.create({
+          data: {
+            monto: cobro.monto,
+            descripcion: `${cobro.proyecto.nombre} — ${cobro.descripcion}`,
+            tipo: "INGRESO",
+            fecha: new Date(),
+            categoriaId,
+            esRecurrente: false,
+            usuarioId: usuario.id,
+            cuentaId: cuentaId ?? null,
+          },
+        });
+        if (cuentaId) {
+          await ajustarSaldoCuenta(tx, cuentaId, "INGRESO", Number(cobro.monto));
+        }
+        return transaccion;
       });
       transaccionId = tx.id;
       revalidateTag("transacciones");
       revalidatePath("/dashboard");
       revalidatePath("/transactions");
+      if (cuentaId) {
+        revalidateTag("cuentas");
+        revalidatePath("/cuentas");
+      }
     }
 
     await prisma.cobroProyecto.update({
@@ -342,6 +358,9 @@ export async function crearGastoEmpresaAction(
     const usuario = await getCurrentUser();
     const empresa = await prisma.empresa.findFirst({ where: { id: empresaId, usuarioId: usuario.id } });
     if (!empresa) return { success: false, error: "Empresa no encontrada." };
+    if (data.cuentaId && !(await validarCuenta(usuario.id, data.cuentaId))) {
+      return { success: false, error: "Cuenta no encontrada." };
+    }
 
     let transaccionId: string | undefined;
 
@@ -349,20 +368,31 @@ export async function crearGastoEmpresaAction(
       const categoria = await prisma.categoria.findFirst({ where: { id: categoriaId, usuarioId: usuario.id } });
       if (!categoria) return { success: false, error: "Categoría no encontrada." };
 
-      const tx = await prisma.transaccion.create({
-        data: {
-          monto: data.monto,
-          descripcion: data.descripcion,
-          tipo: "GASTO",
-          fecha: data.fecha,
-          categoriaId,
-          esRecurrente: false,
-          usuarioId: usuario.id,
-        },
+      const tx = await prisma.$transaction(async (tx) => {
+        const transaccion = await tx.transaccion.create({
+          data: {
+            monto: data.monto,
+            descripcion: data.descripcion,
+            tipo: "GASTO",
+            fecha: data.fecha,
+            categoriaId,
+            esRecurrente: false,
+            usuarioId: usuario.id,
+            cuentaId: data.cuentaId ?? null,
+          },
+        });
+        if (data.cuentaId) {
+          await ajustarSaldoCuenta(tx, data.cuentaId, "GASTO", data.monto);
+        }
+        return transaccion;
       });
       transaccionId = tx.id;
       revalidateTag("transacciones");
       revalidatePath("/dashboard");
+      if (data.cuentaId) {
+        revalidateTag("cuentas");
+        revalidatePath("/cuentas");
+      }
     }
 
     await prisma.gastoEmpresa.create({
@@ -418,18 +448,32 @@ export async function eliminarGastoEmpresaAction(id: string, empresaId: string):
     });
     if (!gasto) return { success: false, error: "Gasto no encontrado." };
 
-    await prisma.$transaction([
-      prisma.gastoEmpresa.delete({ where: { id } }),
-      ...(gasto.transaccionId
-        ? [prisma.transaccion.deleteMany({ where: { id: gasto.transaccionId, usuarioId: usuario.id } })]
-        : []),
-    ]);
+    let cuentaTocada = false;
+
+    await prisma.$transaction(async (tx) => {
+      if (gasto.transaccionId) {
+        const transaccion = await tx.transaccion.findUnique({ where: { id: gasto.transaccionId } });
+        if (transaccion?.cuentaId) {
+          await revertirSaldoCuenta(tx, transaccion.cuentaId, transaccion.tipo, Number(transaccion.monto));
+          cuentaTocada = true;
+        }
+      }
+
+      await tx.gastoEmpresa.delete({ where: { id } });
+      if (gasto.transaccionId) {
+        await tx.transaccion.deleteMany({ where: { id: gasto.transaccionId, usuarioId: usuario.id } });
+      }
+    });
 
     revalidateTag("empresas");
     if (gasto.transaccionId) {
       revalidateTag("transacciones");
       revalidatePath("/dashboard");
       revalidatePath("/transactions");
+    }
+    if (cuentaTocada) {
+      revalidateTag("cuentas");
+      revalidatePath("/cuentas");
     }
     revalidatePath(`/empresas/${empresaId}`);
     return { success: true, data: undefined };
