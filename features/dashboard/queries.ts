@@ -78,7 +78,9 @@ export const getCachedDashboardStats = unstable_cache(
     const tasaAhorro = ingresoMensual > 0 ? (ahorroMensual / ingresoMensual) * 100 : 0;
 
     const saldoTotalCuentas = Number(saldoCuentas._sum.saldo ?? 0);
-    const patrimonioNeto = saldoTotalCuentas + porCobrarPendiente - porPagarPendiente;
+    // Patrimonio neto = solo la plata que tenés de verdad en tus cuentas — las deudas
+    // (lo que te deben o debés) no entran, porque no es plata segura hasta que se cobra/paga.
+    const patrimonioNeto = saldoTotalCuentas;
 
     return {
       balanceTotal: flujoNetoHistorico,

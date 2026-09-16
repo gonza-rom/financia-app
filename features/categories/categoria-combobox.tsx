@@ -85,7 +85,11 @@ export function CategoriaCombobox<T extends CategoriaBase>({
             className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
         </div>
-        <div className="max-h-64 overflow-y-auto p-1">
+        <div
+          className="max-h-64 overflow-y-auto overscroll-contain p-1"
+          style={{ WebkitOverflowScrolling: "touch" }}
+          onTouchMove={(e) => e.stopPropagation()}
+        >
           {allowNone && (
             <button
               type="button"
