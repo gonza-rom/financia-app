@@ -13,16 +13,14 @@ export function StatsCards({ stats, moneda }: StatsCardsProps) {
   const tarjetas = [
     {
       label: "Patrimonio Neto",
-      sublabel: "Flujo histórico + deudas",
+      sublabel: "Saldo real en tus cuentas",
       valor: formatCurrency(stats.patrimonioNeto, moneda),
       icono: BarChart3,
       iconoClase: "bg-primary/10 text-primary",
       cambio: null,
       etiquetaCambio: null,
       positivo: stats.patrimonioNeto >= 0,
-      detalle: stats.porCobrarPendiente > 0 || stats.porPagarPendiente > 0
-        ? `+${formatCurrency(stats.porCobrarPendiente, moneda)} cobrar · -${formatCurrency(stats.porPagarPendiente, moneda)} pagar`
-        : `Flujo: ${formatCurrency(stats.balanceTotal, moneda)}`,
+      detalle: `Flujo histórico: ${formatCurrency(stats.balanceTotal, moneda)}`,
     },
     {
       label: "Ingresos del Mes",

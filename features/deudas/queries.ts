@@ -80,6 +80,21 @@ async function sincronizarVencidas(usuarioId: string) {
       data: { estado: "VENCIDA" },
     });
   }
+
+  // Revertir deudas marcadas VENCIDA cuando ya no tienen ningún motivo para estarlo
+  // (la cuota que la venció se terminó pagando, o se extendió el vencimiento) —
+  // si no, queda marcada "vencida" para siempre aunque se haya pagado en tiempo.
+  await prisma.deuda.updateMany({
+    where: {
+      usuarioId,
+      estado: "VENCIDA",
+      OR: [
+        { cuotas: { none: {} }, fechaVencimiento: { gte: ahora } },
+        { cuotas: { some: {} }, NOT: { cuotas: { some: { pagada: false, fechaVencimiento: { lt: ahora } } } } },
+      ],
+    },
+    data: { estado: "PENDIENTE" },
+  });
 }
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
