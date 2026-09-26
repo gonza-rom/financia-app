@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { confirmDialog } from "@/hooks/use-confirm";
 import {
   confirmarCobroAction, eliminarCobroAction,
   eliminarProyectoAction, eliminarClienteAction, eliminarGastoEmpresaAction,
@@ -61,8 +62,9 @@ function CobroRow({
   const { toast } = useToast();
   const cobrado = cobro.estado === "COBRADO";
 
-  function handleEliminar() {
-    if (!confirm("¿Eliminar este cobro?")) return;
+  async function handleEliminar() {
+    const ok = await confirmDialog({ title: "¿Eliminar este cobro?", destructive: true, confirmLabel: "Eliminar" });
+    if (!ok) return;
     startTransition(async () => {
       const r = await eliminarCobroAction(cobro.id, empresaId);
       if (!r.success) toast({ variant: "destructive", title: "Error", description: r.error });
@@ -206,8 +208,14 @@ function ProyectoCard({
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
-  function handleEliminar() {
-    if (!confirm(`¿Eliminar el proyecto "${proyecto.nombre}"? Se eliminarán también todos sus cobros.`)) return;
+  async function handleEliminar() {
+    const ok = await confirmDialog({
+      title: `¿Eliminar el proyecto "${proyecto.nombre}"?`,
+      description: "Se eliminarán también todos sus cobros.",
+      destructive: true,
+      confirmLabel: "Eliminar",
+    });
+    if (!ok) return;
     startTransition(async () => {
       const r = await eliminarProyectoAction(proyecto.id, empresaId);
       if (!r.success) toast({ variant: "destructive", title: "Error", description: r.error });
@@ -335,8 +343,9 @@ function ClienteRow({
   const [editarOpen, setEditarOpen] = useState(false);
   const { toast } = useToast();
 
-  function handleEliminar() {
-    if (!confirm(`¿Eliminar el cliente "${cliente.nombre}"?`)) return;
+  async function handleEliminar() {
+    const ok = await confirmDialog({ title: `¿Eliminar el cliente "${cliente.nombre}"?`, destructive: true, confirmLabel: "Eliminar" });
+    if (!ok) return;
     startTransition(async () => {
       const r = await eliminarClienteAction(cliente.id, empresaId);
       if (!r.success) toast({ variant: "destructive", title: "Error", description: r.error });
@@ -386,8 +395,9 @@ function GastoRow({
   const [editarOpen, setEditarOpen] = useState(false);
   const { toast } = useToast();
 
-  function handleEliminar() {
-    if (!confirm(`¿Eliminar el gasto "${gasto.descripcion}"?`)) return;
+  async function handleEliminar() {
+    const ok = await confirmDialog({ title: `¿Eliminar el gasto "${gasto.descripcion}"?`, destructive: true, confirmLabel: "Eliminar" });
+    if (!ok) return;
     startTransition(async () => {
       const r = await eliminarGastoEmpresaAction(gasto.id, empresaId);
       if (!r.success) toast({ variant: "destructive", title: "Error", description: r.error });

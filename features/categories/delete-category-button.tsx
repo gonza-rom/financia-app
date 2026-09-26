@@ -6,6 +6,7 @@ import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { deleteCategoryAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
+import { confirmDialog } from "@/hooks/use-confirm";
 
 interface DeleteCategoryButtonProps {
   id: string;
@@ -17,7 +18,7 @@ export function DeleteCategoryButton({ id, cantidadTransacciones, cantidadSubcat
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
-  function handleDelete() {
+  async function handleDelete() {
     if (cantidadTransacciones > 0) {
       toast({
         variant: "destructive",
@@ -34,7 +35,8 @@ export function DeleteCategoryButton({ id, cantidadTransacciones, cantidadSubcat
       });
       return;
     }
-    if (!confirm("¿Eliminar esta categoría?")) return;
+    const ok = await confirmDialog({ title: "¿Eliminar esta categoría?", destructive: true, confirmLabel: "Eliminar" });
+    if (!ok) return;
 
     startTransition(async () => {
       const result = await deleteCategoryAction(id);
