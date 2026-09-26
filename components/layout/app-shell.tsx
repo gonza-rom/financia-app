@@ -1,6 +1,9 @@
 // components/layout/app-shell.tsx
 import { Sidebar } from "./sidebar";
 import { MobileNav } from "./mobile-nav";
+import { QuickAddFab } from "./quick-add-fab";
+import { getCategorias } from "@/features/categories/queries";
+import { getCuentas } from "@/features/cuentas/queries";
 import type { Usuario } from "@/types";
 
 interface AppShellProps {
@@ -8,7 +11,12 @@ interface AppShellProps {
   children: React.ReactNode;
 }
 
-export function AppShell({ user, children }: AppShellProps) {
+export async function AppShell({ user, children }: AppShellProps) {
+  const [categorias, cuentas] = await Promise.all([
+    getCategorias(user.id),
+    getCuentas(user.id),
+  ]);
+
   return (
     <div className="flex h-dvh bg-background">
       {/* Sidebar — solo visible en md+ */}
@@ -34,6 +42,9 @@ export function AppShell({ user, children }: AppShellProps) {
 
       {/* Bottom nav — solo visible en mobile */}
       <MobileNav />
+
+      {/* Acceso rápido a "nueva transacción" desde cualquier pantalla */}
+      <QuickAddFab categorias={categorias} cuentas={cuentas} />
     </div>
   );
 }
