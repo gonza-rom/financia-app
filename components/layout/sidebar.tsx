@@ -14,7 +14,8 @@ import {
   Building2,
   Landmark,
   Wallet,
-  BarChart2 
+  BarChart2,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Usuario } from "@/types";
@@ -23,6 +24,7 @@ import { useTransition } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getInitials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { openGlobalSearch } from "@/hooks/use-global-search";
 
 const NAV_ITEMS = [
   { href: "/dashboard",    label: "Dashboard",     icon: LayoutDashboard },
@@ -56,6 +58,21 @@ export function Sidebar({ user }: SidebarProps) {
           <DollarSign className="size-4 text-primary-foreground" strokeWidth={2.5} />
         </div>
         <span className="font-semibold text-base tracking-tight">Fintrack</span>
+      </div>
+
+      {/* Buscador global */}
+      <div className="px-3 pt-3">
+        <button
+          type="button"
+          onClick={openGlobalSearch}
+          className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm text-muted-foreground border border-border hover:text-foreground hover:border-foreground/30 transition-colors"
+        >
+          <Search className="size-3.5 shrink-0" />
+          <span className="flex-1 text-left">Buscar…</span>
+          <kbd className="inline-flex items-center gap-0.5 rounded border border-border px-1.5 py-0.5 text-[10px] font-medium">
+            Ctrl K
+          </kbd>
+        </button>
       </div>
 
       {/* Nav */}

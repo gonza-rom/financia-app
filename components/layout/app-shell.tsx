@@ -1,6 +1,7 @@
 // components/layout/app-shell.tsx
 import { Sidebar } from "./sidebar";
 import { MobileNav } from "./mobile-nav";
+import { GlobalSearch } from "./global-search";
 import { getCategorias } from "@/features/categories/queries";
 import { getCuentas } from "@/features/cuentas/queries";
 import type { Usuario } from "@/types";
@@ -41,6 +42,9 @@ export async function AppShell({ user, children }: AppShellProps) {
 
       {/* Bottom nav — solo visible en mobile */}
       <MobileNav categorias={categorias} cuentas={cuentas} />
+
+      {/* Buscador global — Ctrl+K, o desde el botón en Sidebar/menú "Más" */}
+      <GlobalSearch moneda={user.moneda} />
     </div>
   );
 }

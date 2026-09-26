@@ -16,6 +16,7 @@ import {
   BarChart2,
   MoreHorizontal,
   Plus,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -23,8 +24,10 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { TransactionDialog } from "@/features/transactions/transaction-dialog";
+import { openGlobalSearch } from "@/hooks/use-global-search";
 import type { Categoria } from "@/types";
 
 // Solo los 4 accesos más frecuentes van fijos en la barra — el resto vive en "Más".
@@ -143,6 +146,10 @@ export function MobileNav({ categorias, cuentas }: MobileNavProps) {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="end" sideOffset={8} className="mb-1">
+            <DropdownMenuItem onSelect={() => openGlobalSearch()} className="flex items-center gap-2">
+              <Search className="size-4" /> Buscar
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             {NAV_MAS.map((item) => {
               const Icon = item.icon;
               const isActive = pathname.startsWith(item.href);
