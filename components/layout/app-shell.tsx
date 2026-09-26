@@ -1,7 +1,6 @@
 // components/layout/app-shell.tsx
 import { Sidebar } from "./sidebar";
 import { MobileNav } from "./mobile-nav";
-import { QuickAddFab } from "./quick-add-fab";
 import { getCategorias } from "@/features/categories/queries";
 import { getCuentas } from "@/features/cuentas/queries";
 import type { Usuario } from "@/types";
@@ -42,9 +41,6 @@ export async function AppShell({ user, children }: AppShellProps) {
 
       {/* Bottom nav — solo visible en mobile */}
       <MobileNav categorias={categorias} cuentas={cuentas} />
-
-      {/* Acceso rápido a "nueva transacción" desde cualquier pantalla */}
-      <QuickAddFab categorias={categorias} cuentas={cuentas} />
     </div>
   );
 }
