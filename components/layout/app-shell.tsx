@@ -41,7 +41,7 @@ export async function AppShell({ user, children }: AppShellProps) {
       </main>
 
       {/* Bottom nav — solo visible en mobile */}
-      <MobileNav />
+      <MobileNav categorias={categorias} cuentas={cuentas} />
 
       {/* Acceso rápido a "nueva transacción" desde cualquier pantalla */}
       <QuickAddFab categorias={categorias} cuentas={cuentas} />

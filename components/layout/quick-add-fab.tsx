@@ -18,9 +18,9 @@ interface QuickAddFabProps {
   cuentas: CuentaSimple[];
 }
 
-// Botón flotante para cargar una transacción desde cualquier pantalla — antes solo
-// se podía desde /transactions, obligando a navegar ahí primero para lo que es la
-// acción que más se repite en el uso diario de la app.
+// Botón flotante para cargar una transacción desde cualquier pantalla — solo en
+// desktop, donde no hay una tab bar donde incrustarlo (en mobile vive dentro de
+// MobileNav, como un botón central sobresaliendo de la barra).
 export function QuickAddFab({ categorias, cuentas }: QuickAddFabProps) {
   const [open, setOpen] = useState(false);
 
@@ -32,12 +32,12 @@ export function QuickAddFab({ categorias, cuentas }: QuickAddFabProps) {
         aria-label="Nueva transacción"
         title="Nueva transacción"
         className="
-          fixed z-40 right-4 md:right-6
-          bottom-[calc(4rem+env(safe-area-inset-bottom,0px)+1rem)] md:bottom-6
+          hidden md:flex
+          fixed z-40 right-6 bottom-6
           size-14 rounded-full
           bg-primary text-primary-foreground
           shadow-lg shadow-primary/25
-          flex items-center justify-center
+          items-center justify-center
           transition-transform hover:scale-105 active:scale-95
         "
       >
