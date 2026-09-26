@@ -7,10 +7,9 @@ import type { Categoria } from "@/types";
 import { TipoTransaccion } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
-import { CategoriaSelectItems } from "@/features/categories/categoria-select-items";
+import { CategoriaCombobox } from "@/features/categories/categoria-combobox";
 
 interface TransactionFiltersBarProps {
   categorias: Categoria[];
@@ -51,16 +50,15 @@ export function TransactionFiltersBar({ categorias }: TransactionFiltersBarProps
         </button>
       </div>
 
-      <Select value={searchParams.get("categoriaId") ?? "todas"}
-        onValueChange={(v) => updateParam("categoriaId", v === "todas" ? null : v)}>
-        <SelectTrigger className="w-[160px] h-8 text-sm">
-          <SelectValue placeholder="Categoría" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="todas">Todas las categorías</SelectItem>
-          <CategoriaSelectItems categorias={categorias} />
-        </SelectContent>
-      </Select>
+      <CategoriaCombobox
+        categorias={categorias}
+        value={searchParams.get("categoriaId") ?? undefined}
+        onChange={(id) => updateParam("categoriaId", id || null)}
+        allowNone
+        noneLabel="Todas las categorías"
+        placeholder="Categoría"
+        className="w-[180px] h-8 text-sm"
+      />
 
       <Input placeholder="Buscar…" className="h-8 text-sm w-[160px]"
         defaultValue={searchParams.get("busqueda") ?? ""}
@@ -69,6 +67,16 @@ export function TransactionFiltersBar({ categorias }: TransactionFiltersBarProps
           clearTimeout(busquedaTimeout.current);
           busquedaTimeout.current = setTimeout(() => updateParam("busqueda", val || null), 400);
         }} />
+
+      <div className="flex items-center gap-1.5">
+        <Input type="date" className="h-8 text-sm w-[140px]"
+          value={searchParams.get("fechaDesde") ?? ""}
+          onChange={(e) => updateParam("fechaDesde", e.target.value || null)} />
+        <span className="text-xs text-muted-foreground">a</span>
+        <Input type="date" className="h-8 text-sm w-[140px]"
+          value={searchParams.get("fechaHasta") ?? ""}
+          onChange={(e) => updateParam("fechaHasta", e.target.value || null)} />
+      </div>
 
       {hayFiltros && (
         <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-muted-foreground" onClick={() => router.push("?")}>
