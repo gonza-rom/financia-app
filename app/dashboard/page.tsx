@@ -20,6 +20,8 @@ import { getCachedResumenDeudas } from "@/features/dashboard/deudas-query";
 import { DeudasWidget } from "@/features/dashboard/deudas-widget";
 import { getCachedRecordatorios } from "@/features/dashboard/recordatorios-query";
 import { RecordatoriosWidget } from "@/features/dashboard/recordatorios-widget";
+import { getCachedPresupuestos } from "@/features/presupuestos/queries";
+import { PresupuestosAlertWidget } from "@/features/dashboard/presupuestos-alert-widget";
 import { getProximoCierre } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -31,7 +33,7 @@ async function DashboardData() {
   const mes   = ahora.getMonth() + 1;
   const mesLabel = ahora.toLocaleString("es-AR", { month: "long", year: "numeric" });
 
-  const [stats, graficoDatos, desgloseGastos, transRecientes, resumenDeudas, dailyStats, recordatorios] =
+  const [stats, graficoDatos, desgloseGastos, transRecientes, resumenDeudas, dailyStats, recordatorios, presupuestos] =
     await Promise.all([
       getCachedDashboardStats(usuario.id),
       getCachedYearlyChart(usuario.id, anio),
@@ -40,6 +42,7 @@ async function DashboardData() {
       getCachedResumenDeudas(usuario.id, usuario.diaCierreTarjeta),
       getCachedDailyStats(usuario.id),
       getCachedRecordatorios(usuario.id),
+      getCachedPresupuestos(usuario.id),
     ]);
 
   return (
@@ -49,6 +52,9 @@ async function DashboardData() {
 
       {/* Recordatorios de vencimientos */}
       <RecordatoriosWidget recordatorios={recordatorios} />
+
+      {/* Aviso de presupuestos cerca o pasados del límite */}
+      <PresupuestosAlertWidget presupuestos={presupuestos} moneda={usuario.moneda} />
 
       {/* Gráfico diario + resumen semanal */}
       <StatsSection

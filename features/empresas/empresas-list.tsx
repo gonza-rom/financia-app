@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { eliminarEmpresaAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
+import { confirmDialog } from "@/hooks/use-confirm";
 import { EditarEmpresaDialog } from "./editar-empresa-dialog";
 
 function EmpresaCard({ empresa, moneda }: { empresa: EmpresaResumen; moneda: string }) {
@@ -17,8 +18,13 @@ function EmpresaCard({ empresa, moneda }: { empresa: EmpresaResumen; moneda: str
   const [editando, setEditando] = useState(false);
   const { toast } = useToast();
 
-  function handleEliminar() {
-    if (!confirm(`¿Eliminar "${empresa.nombre}"?`)) return;
+  async function handleEliminar() {
+    const ok = await confirmDialog({
+      title: `¿Eliminar "${empresa.nombre}"?`,
+      destructive: true,
+      confirmLabel: "Eliminar",
+    });
+    if (!ok) return;
     startTransition(async () => {
       const result = await eliminarEmpresaAction(empresa.id);
       if (!result.success) toast({ variant: "destructive", title: "Error", description: result.error });

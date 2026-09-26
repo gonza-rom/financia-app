@@ -1,6 +1,7 @@
 // components/layout/mobile-nav.tsx
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -14,6 +15,8 @@ import {
   Wallet,
   BarChart2,
   MoreHorizontal,
+  Plus,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -21,16 +24,25 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { TransactionDialog } from "@/features/transactions/transaction-dialog";
+import { openGlobalSearch } from "@/hooks/use-global-search";
+import type { Categoria } from "@/types";
 
 // Solo los 4 accesos más frecuentes van fijos en la barra — el resto vive en "Más".
 // Con 9 items en una fila de 375px de ancho, cada uno queda con ~41px: los labels
 // largos ("Vehículos", "Configuración") se cortaban o desbordaban.
-const NAV_PRINCIPAL = [
+// Van 2 a cada lado del botón central de "nueva transacción" (patrón tab-bar con
+// FAB incrustado, tipo Instagram/Mercado Pago).
+const NAV_IZQUIERDA = [
   { href: "/dashboard",    label: "Dashboard", icon: LayoutDashboard },
   { href: "/transactions", label: "Trans",     icon: ArrowLeftRight },
-  { href: "/cuentas",      label: "Cuentas",   icon: Wallet },
-  { href: "/deudas",       label: "Deudas",    icon: Landmark },
+];
+
+const NAV_DERECHA = [
+  { href: "/cuentas", label: "Cuentas", icon: Wallet },
+  { href: "/deudas",  label: "Deudas",  icon: Landmark },
 ];
 
 const NAV_MAS = [
@@ -59,9 +71,22 @@ function NavLink({ href, label, Icon, isActive }: { href: string; label: string;
   );
 }
 
-export function MobileNav() {
+type CuentaSimple = {
+  id: string;
+  nombre: string;
+  tipo: string;
+  color: string;
+};
+
+interface MobileNavProps {
+  categorias: Categoria[];
+  cuentas: CuentaSimple[];
+}
+
+export function MobileNav({ categorias, cuentas }: MobileNavProps) {
   const pathname = usePathname();
   const enMas = NAV_MAS.some((item) => pathname.startsWith(item.href));
+  const [nuevaTransaccionOpen, setNuevaTransaccionOpen] = useState(false);
 
   return (
     <nav
@@ -74,7 +99,32 @@ export function MobileNav() {
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
       <div className="flex items-stretch h-16">
-        {NAV_PRINCIPAL.map((item) => (
+        {NAV_IZQUIERDA.map((item) => (
+          <NavLink key={item.href} href={item.href} label={item.label} Icon={item.icon}
+            isActive={pathname.startsWith(item.href)} />
+        ))}
+
+        {/* Botón central incrustado — sobresale de la barra, patrón tab-bar con FAB */}
+        <div className="relative flex-1 flex items-center justify-center">
+          <button
+            type="button"
+            onClick={() => setNuevaTransaccionOpen(true)}
+            aria-label="Nueva transacción"
+            className="
+              absolute -top-5
+              size-12 rounded-full
+              bg-primary text-primary-foreground
+              shadow-lg shadow-primary/30
+              flex items-center justify-center
+              ring-4 ring-background
+              transition-transform active:scale-95
+            "
+          >
+            <Plus className="size-6" />
+          </button>
+        </div>
+
+        {NAV_DERECHA.map((item) => (
           <NavLink key={item.href} href={item.href} label={item.label} Icon={item.icon}
             isActive={pathname.startsWith(item.href)} />
         ))}
@@ -96,6 +146,10 @@ export function MobileNav() {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="end" sideOffset={8} className="mb-1">
+            <DropdownMenuItem onSelect={() => openGlobalSearch()} className="flex items-center gap-2">
+              <Search className="size-4" /> Buscar
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             {NAV_MAS.map((item) => {
               const Icon = item.icon;
               const isActive = pathname.startsWith(item.href);
@@ -110,6 +164,13 @@ export function MobileNav() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <TransactionDialog
+        categorias={categorias}
+        cuentas={cuentas}
+        open={nuevaTransaccionOpen}
+        onOpenChange={setNuevaTransaccionOpen}
+      />
     </nav>
   );
 }

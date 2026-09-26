@@ -43,6 +43,7 @@ export interface EstadisticasCompletas {
   historico6Meses: DatoMensualHistorico[];
   totalesMes: { ingreso: number; gasto: number; neto: number };
   totalesAnio: { ingreso: number; gasto: number; neto: number };
+  totalesMesAnterior: { ingreso: number; gasto: number; neto: number };
 }
 
 export const getCachedEstadisticas = unstable_cache(
@@ -181,7 +182,7 @@ export const getCachedEstadisticas = unstable_cache(
     });
 
     // ─── 4. Totales ───────────────────────────────────────────────────────────
-    const [totMes, totAnio] = await Promise.all([
+    const [totMes, totAnio, totMesAnterior] = await Promise.all([
       prisma.transaccion.groupBy({
         by: ["tipo"],
         where: { usuarioId, fecha: { gte: desdeActual, lte: hastaActual } },
@@ -190,6 +191,11 @@ export const getCachedEstadisticas = unstable_cache(
       prisma.transaccion.groupBy({
         by: ["tipo"],
         where: { usuarioId, fecha: { gte: desdeAnio, lte: hastaAnio } },
+        _sum: { monto: true },
+      }),
+      prisma.transaccion.groupBy({
+        by: ["tipo"],
+        where: { usuarioId, fecha: { gte: desdeAnterior, lte: hastaAnterior } },
         _sum: { monto: true },
       }),
     ]);
@@ -201,6 +207,8 @@ export const getCachedEstadisticas = unstable_cache(
     const gasMes  = g(totMes as any, TipoTransaccion.GASTO);
     const ingAnio = g(totAnio as any, TipoTransaccion.INGRESO);
     const gasAnio = g(totAnio as any, TipoTransaccion.GASTO);
+    const ingMesAnt = g(totMesAnterior as any, TipoTransaccion.INGRESO);
+    const gasMesAnt = g(totMesAnterior as any, TipoTransaccion.GASTO);
 
     return {
       diasMes,
@@ -208,6 +216,7 @@ export const getCachedEstadisticas = unstable_cache(
       historico6Meses,
       totalesMes:  { ingreso: ingMes,  gasto: gasMes,  neto: ingMes  - gasMes  },
       totalesAnio: { ingreso: ingAnio, gasto: gasAnio, neto: ingAnio - gasAnio },
+      totalesMesAnterior: { ingreso: ingMesAnt, gasto: gasMesAnt, neto: ingMesAnt - gasMesAnt },
     };
   },
   ["estadisticas"],

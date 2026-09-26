@@ -14,6 +14,7 @@ import { GastoDialog } from "./gasto-dialog";
 import { EditarSeccionDialog } from "./editar-seccion-dialog";
 import { EditarGastoDialog } from "./editar-gasto-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { confirmDialog } from "@/hooks/use-confirm";
 import { cn } from "@/lib/utils";
 import { Categoria } from "@prisma/client";
 import type { CuentaSimple } from "@/features/cuentas/cuenta-select";
@@ -24,9 +25,10 @@ interface SeccionCardProps {
   moneda: string;
   categorias: Categoria[];
   cuentas: CuentaSimple[];
+  vehiculoKilometraje: number | null;
 }
 
-export function SeccionCard({ vehiculoId, seccion, moneda, categorias, cuentas }: SeccionCardProps) {
+export function SeccionCard({ vehiculoId, seccion, moneda, categorias, cuentas, vehiculoKilometraje }: SeccionCardProps) {
   const [expandido, setExpandido] = useState(false);
   const [dialogGasto, setDialogGasto] = useState(false);
   const [dialogEditarSeccion, setDialogEditarSeccion] = useState(false);
@@ -34,8 +36,9 @@ export function SeccionCard({ vehiculoId, seccion, moneda, categorias, cuentas }
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
-  function handleEliminarGasto(id: string) {
-    if (!confirm("¿Eliminar este gasto?")) return;
+  async function handleEliminarGasto(id: string) {
+    const ok = await confirmDialog({ title: "¿Eliminar este gasto?", destructive: true, confirmLabel: "Eliminar" });
+    if (!ok) return;
     startTransition(async () => {
       const result = await eliminarGastoVehiculoAction(id, vehiculoId);
       if (!result.success) {
@@ -101,8 +104,14 @@ export function SeccionCard({ vehiculoId, seccion, moneda, categorias, cuentas }
                 variant="ghost"
                 size="icon"
                 className="size-7 text-destructive hover:text-destructive"
-                onClick={() => {
-                    if (!confirm(`¿Eliminar la sección "${seccion.nombre}"? Se eliminarán también todos sus gastos.`)) return;
+                onClick={async () => {
+                    const ok = await confirmDialog({
+                      title: `¿Eliminar la sección "${seccion.nombre}"?`,
+                      description: "Se eliminarán también todos sus gastos.",
+                      destructive: true,
+                      confirmLabel: "Eliminar",
+                    });
+                    if (!ok) return;
                     startTransition(async () => {
                     const result = await eliminarSeccionAction(seccion.id, vehiculoId);
                     if (!result.success) {
@@ -226,6 +235,7 @@ export function SeccionCard({ vehiculoId, seccion, moneda, categorias, cuentas }
         seccion={seccion}
         categorias={categorias}
         cuentas={cuentas}
+        vehiculoKilometraje={vehiculoKilometraje}
         open={dialogGasto}
         onOpenChange={setDialogGasto}
       />

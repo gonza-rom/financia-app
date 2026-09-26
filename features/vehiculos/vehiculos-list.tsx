@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { eliminarVehiculoAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
+import { confirmDialog } from "@/hooks/use-confirm";
 import { useTransition } from "react";
 import { EditarVehiculoDialog } from "./editar-vehiculo-dialog";
 
@@ -29,8 +30,14 @@ function VehiculoCard({
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
-  function handleEliminar() {
-    if (!confirm(`¿Eliminar "${vehiculo.nombre}"? Se conservarán todos los gastos registrados.`)) return;
+  async function handleEliminar() {
+    const ok = await confirmDialog({
+      title: `¿Eliminar "${vehiculo.nombre}"?`,
+      description: "Se conservarán todos los gastos registrados.",
+      destructive: true,
+      confirmLabel: "Eliminar",
+    });
+    if (!ok) return;
     startTransition(async () => {
       const result = await eliminarVehiculoAction(vehiculo.id);
       if (!result.success) {

@@ -10,6 +10,7 @@ import { TransactionFiltersBar } from "@/features/transactions/transaction-filte
 import { AddTransactionButton } from "@/features/transactions/add-transaction-button";
 import { TransactionListSkeleton } from "@/components/skeletons";
 import { TipoTransaccion } from "@prisma/client";
+import { parseFechaLocal } from "@/lib/utils-fecha";
 
 export const metadata: Metadata = { title: "Transacciones" };
 
@@ -19,6 +20,8 @@ interface PageProps {
     tipo?: string;
     categoriaId?: string;
     busqueda?: string;
+    fechaDesde?: string;
+    fechaHasta?: string;
   }>;
 }
 
@@ -41,6 +44,8 @@ async function TransaccionesData({
       tipo,
       categoriaId: searchParams.categoriaId,
       busqueda: searchParams.busqueda,
+      fechaDesde: parseFechaLocal(searchParams.fechaDesde),
+      fechaHasta: parseFechaLocal(searchParams.fechaHasta),
     }),
     getCategorias(usuarioId),
     getCuentas(usuarioId),

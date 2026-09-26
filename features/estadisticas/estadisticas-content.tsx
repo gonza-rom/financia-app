@@ -6,10 +6,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GraficoDiario } from "./grafico-diario";
 import { TablaCategorias } from "./tabla-categorias";
 import { GraficoTendencias } from "./grafico-tendencias";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, calculatePercentageChange, cn } from "@/lib/utils";
 import type { EstadisticasCompletas } from "./queries";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { TrendingUp, TrendingDown } from "lucide-react";
 
 type Tab = "gastos" | "ingresos" | "neto";
 
@@ -21,28 +20,39 @@ interface EstadisticasContentProps {
 export function EstadisticasContent({ datos, moneda }: EstadisticasContentProps) {
   const [tab, setTab] = useState<Tab>("gastos");
 
-  const { totalesMes, totalesAnio } = datos;
+  const { totalesMes, totalesAnio, totalesMesAnterior } = datos;
 
   const resumen = {
     gastos: {
       mes: totalesMes.gasto,
       anio: totalesAnio.gasto,
+      mesAnterior: totalesMesAnterior.gasto,
       label: "Gastos",
       colorClass: "text-expense",
+      subeEsBueno: false,
     },
     ingresos: {
       mes: totalesMes.ingreso,
       anio: totalesAnio.ingreso,
+      mesAnterior: totalesMesAnterior.ingreso,
       label: "Ingresos",
       colorClass: "text-income",
+      subeEsBueno: true,
     },
     neto: {
       mes: totalesMes.neto,
       anio: totalesAnio.neto,
+      mesAnterior: totalesMesAnterior.neto,
       label: "Neto",
       colorClass: totalesMes.neto >= 0 ? "text-income" : "text-expense",
+      subeEsBueno: true,
     },
   }[tab];
+
+  const cambioMes = calculatePercentageChange(resumen.mes, resumen.mesAnterior);
+  const subeMes = cambioMes >= 0;
+  const cambioEsPositivo = resumen.subeEsBueno ? subeMes : !subeMes;
+  const IconoCambio = subeMes ? TrendingUp : TrendingDown;
 
   return (
     <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)} className="space-y-6">
@@ -62,6 +72,13 @@ export function EstadisticasContent({ datos, moneda }: EstadisticasContentProps)
             <p className={cn("text-lg font-semibold tabular-nums", resumen.colorClass)}>
               {formatCurrency(resumen.mes, moneda)}
             </p>
+            <div className={cn(
+              "inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full mt-0.5",
+              cambioEsPositivo ? "bg-income/10 text-income" : "bg-expense/10 text-expense"
+            )}>
+              <IconoCambio className="size-2.5" />
+              {cambioMes >= 0 ? "+" : ""}{cambioMes.toFixed(0)}% vs mes ant.
+            </div>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Este año</p>

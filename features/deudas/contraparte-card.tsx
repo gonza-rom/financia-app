@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { confirmDialog } from "@/hooks/use-confirm";
 import {
   marcarDeudaPagada,
   marcarDeudaVencida,
@@ -300,7 +301,9 @@ function DeudaRow({ deuda, categorias, cuentas }: { deuda: Deuda; categorias: Ca
     });
   }
 
-  function handleEliminar() {
+  async function handleEliminar() {
+    const ok = await confirmDialog({ title: "¿Eliminar esta deuda?", destructive: true, confirmLabel: "Eliminar" });
+    if (!ok) return;
     startTransition(async () => {
       const res = await eliminarDeuda(deuda.id);
       if (!res.success) toast({ variant: "destructive", title: res.error });
@@ -322,16 +325,28 @@ function DeudaRow({ deuda, categorias, cuentas }: { deuda: Deuda; categorias: Ca
     });
   }
 
-  function handleDeshacerCuota(cuotaId: string) {
-    if (!confirm("¿Deshacer el pago de esta cuota? Si generó una transacción personal, también se elimina.")) return;
+  async function handleDeshacerCuota(cuotaId: string) {
+    const ok = await confirmDialog({
+      title: "¿Deshacer el pago de esta cuota?",
+      description: "Si generó una transacción personal, también se elimina.",
+      destructive: true,
+      confirmLabel: "Deshacer",
+    });
+    if (!ok) return;
     startTransition(async () => {
       const res = await desmarcarCuotaPagada(cuotaId, deuda.id);
       if (!res.success) toast({ variant: "destructive", title: res.error });
     });
   }
 
-  function handleEliminarPago(pagoId: string) {
-    if (!confirm("¿Eliminar este pago? Si generó una transacción personal, también se elimina.")) return;
+  async function handleEliminarPago(pagoId: string) {
+    const ok = await confirmDialog({
+      title: "¿Eliminar este pago?",
+      description: "Si generó una transacción personal, también se elimina.",
+      destructive: true,
+      confirmLabel: "Eliminar",
+    });
+    if (!ok) return;
     startTransition(async () => {
       const res = await eliminarPagoDeuda(pagoId, deuda.id);
       if (!res.success) toast({ variant: "destructive", title: res.error });

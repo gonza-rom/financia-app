@@ -6,13 +6,15 @@ import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { deleteTransactionAction } from "./actions";
 import { useToast } from "@/hooks/use-toast";
+import { confirmDialog } from "@/hooks/use-confirm";
 
 export function DeleteTransactionButton({ id }: { id: string }) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
-  function handleDelete() {
-    if (!confirm("¿Eliminar esta transacción?")) return;
+  async function handleDelete() {
+    const ok = await confirmDialog({ title: "¿Eliminar esta transacción?", destructive: true, confirmLabel: "Eliminar" });
+    if (!ok) return;
     startTransition(async () => {
       const result = await deleteTransactionAction(id);
       if (!result.success) {
