@@ -7,13 +7,51 @@ import type { Categoria } from "@/types";
 import { TipoTransaccion } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { cn, getMonthRange, getPreviousMonthRange } from "@/lib/utils";
+import { formatFechaInput } from "@/lib/utils-fecha";
 import { X } from "lucide-react";
 import { CategoriaCombobox } from "@/features/categories/categoria-combobox";
 
 interface TransactionFiltersBarProps {
   categorias: Categoria[];
 }
+
+type PresetFecha = "hoy" | "semana" | "mes" | "mesPasado" | "anio";
+
+function rangoPreset(preset: PresetFecha): { desde: string; hasta: string } {
+  const hoy = new Date();
+
+  switch (preset) {
+    case "hoy":
+      return { desde: formatFechaInput(hoy), hasta: formatFechaInput(hoy) };
+    case "semana": {
+      const diaSemana = hoy.getDay();
+      const lunes = new Date(hoy);
+      lunes.setDate(hoy.getDate() - ((diaSemana + 6) % 7));
+      return { desde: formatFechaInput(lunes), hasta: formatFechaInput(hoy) };
+    }
+    case "mes": {
+      const { from } = getMonthRange(hoy);
+      return { desde: formatFechaInput(from), hasta: formatFechaInput(hoy) };
+    }
+    case "mesPasado": {
+      const { from, to } = getPreviousMonthRange(hoy);
+      return { desde: formatFechaInput(from), hasta: formatFechaInput(to) };
+    }
+    case "anio": {
+      const from = new Date(hoy.getFullYear(), 0, 1);
+      return { desde: formatFechaInput(from), hasta: formatFechaInput(hoy) };
+    }
+  }
+}
+
+const PRESETS: { key: PresetFecha; label: string }[] = [
+  { key: "hoy", label: "Hoy" },
+  { key: "semana", label: "Esta semana" },
+  { key: "mes", label: "Este mes" },
+  { key: "mesPasado", label: "Mes pasado" },
+  { key: "anio", label: "Este año" },
+];
 
 export function TransactionFiltersBar({ categorias }: TransactionFiltersBarProps) {
   const router = useRouter();
@@ -27,8 +65,26 @@ export function TransactionFiltersBar({ categorias }: TransactionFiltersBarProps
     router.push(`?${params.toString()}`);
   }, [router, searchParams]);
 
+  const updateParams = useCallback((entries: Record<string, string | null>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    for (const [key, value] of Object.entries(entries)) {
+      if (value) { params.set(key, value); } else { params.delete(key); }
+    }
+    params.delete("pagina");
+    router.push(`?${params.toString()}`);
+  }, [router, searchParams]);
+
+  function aplicarPreset(preset: PresetFecha) {
+    const { desde, hasta } = rangoPreset(preset);
+    updateParams({ fechaDesde: desde, fechaHasta: hasta });
+  }
+
   const tipoActivo = searchParams.get("tipo") as TipoTransaccion | null;
   const hayFiltros = searchParams.toString().length > 0;
+  const presetActivo = PRESETS.find((p) => {
+    const r = rangoPreset(p.key);
+    return r.desde === searchParams.get("fechaDesde") && r.hasta === searchParams.get("fechaHasta");
+  })?.key;
 
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -76,6 +132,23 @@ export function TransactionFiltersBar({ categorias }: TransactionFiltersBarProps
         <Input type="date" className="h-8 text-sm w-[140px]"
           value={searchParams.get("fechaHasta") ?? ""}
           onChange={(e) => updateParam("fechaHasta", e.target.value || null)} />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-1">
+        {PRESETS.map((p) => (
+          <button
+            key={p.key}
+            onClick={() => aplicarPreset(p.key)}
+            className={cn(
+              "px-2 py-1 rounded-md text-xs font-medium transition-colors border",
+              presetActivo === p.key
+                ? "bg-primary/10 text-primary border-primary/30"
+                : "text-muted-foreground border-border hover:text-foreground hover:border-foreground/30"
+            )}
+          >
+            {p.label}
+          </button>
+        ))}
       </div>
 
       {hayFiltros && (
