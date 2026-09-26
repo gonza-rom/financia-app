@@ -102,6 +102,7 @@ export default async function VehiculoDetallePage({ params }: PageProps) {
                 moneda={usuario.moneda}
                 categorias={categorias}
                 cuentas={cuentas}
+                vehiculoKilometraje={vehiculo.kilometraje}
               />
             ))}
           </div>

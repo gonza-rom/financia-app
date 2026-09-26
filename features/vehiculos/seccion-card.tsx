@@ -24,9 +24,10 @@ interface SeccionCardProps {
   moneda: string;
   categorias: Categoria[];
   cuentas: CuentaSimple[];
+  vehiculoKilometraje: number | null;
 }
 
-export function SeccionCard({ vehiculoId, seccion, moneda, categorias, cuentas }: SeccionCardProps) {
+export function SeccionCard({ vehiculoId, seccion, moneda, categorias, cuentas, vehiculoKilometraje }: SeccionCardProps) {
   const [expandido, setExpandido] = useState(false);
   const [dialogGasto, setDialogGasto] = useState(false);
   const [dialogEditarSeccion, setDialogEditarSeccion] = useState(false);
@@ -226,6 +227,7 @@ export function SeccionCard({ vehiculoId, seccion, moneda, categorias, cuentas }
         seccion={seccion}
         categorias={categorias}
         cuentas={cuentas}
+        vehiculoKilometraje={vehiculoKilometraje}
         open={dialogGasto}
         onOpenChange={setDialogGasto}
       />

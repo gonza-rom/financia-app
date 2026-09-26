@@ -310,6 +310,7 @@ export async function actualizarGastoVehiculoAction(
 
     const gasto = await prisma.gastoVehiculo.findFirst({
       where: { id, vehiculo: { id: vehiculoId, usuarioId: usuario.id } },
+      include: { vehiculo: true },
     });
     if (!gasto) return { success: false, error: "Gasto no encontrado." };
     if (data.cuentaId && !(await validarCuenta(usuario.id, data.cuentaId))) {
@@ -318,6 +319,10 @@ export async function actualizarGastoVehiculoAction(
 
     const cambioMontoDescoFecha = data.monto !== undefined || data.descripcion !== undefined || data.fecha !== undefined;
     const cambioCuenta = data.cuentaId !== undefined;
+    // Igual que al crear un gasto: si el nuevo kilometraje es mayor al del vehículo,
+    // lo actualizamos — sin esto, corregir/cargar el km desde el editor de un gasto
+    // (en cualquier sección) nunca se reflejaba en el vehículo.
+    const subeKmVehiculo = data.kilometraje != null && data.kilometraje > (gasto.vehiculo.kilometraje ?? 0);
     let cuentaTocada = false;
 
     await prisma.$transaction(async (tx) => {
@@ -362,6 +367,13 @@ export async function actualizarGastoVehiculoAction(
             cuentaTocada = true;
           }
         }
+      }
+
+      if (subeKmVehiculo) {
+        await tx.vehiculo.update({
+          where: { id: vehiculoId },
+          data: { kilometraje: data.kilometraje },
+        });
       }
     });
 

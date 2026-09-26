@@ -2,7 +2,7 @@
 "use client";
 
 import { useForm } from "react-hook-form";
-import { useTransition } from "react";
+import { useTransition, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ interface GastoDialogProps {
   seccion: SeccionConGastos;
   categorias: Categoria[];
   cuentas: CuentaSimple[];
+  vehiculoKilometraje: number | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -40,7 +41,7 @@ function detectarTipo(nombreSeccion: string) {
   return "generico";
 }
 
-export function GastoDialog({ vehiculoId, seccion, categorias, cuentas, open, onOpenChange }: GastoDialogProps) {
+export function GastoDialog({ vehiculoId, seccion, categorias, cuentas, vehiculoKilometraje, open, onOpenChange }: GastoDialogProps) {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const tipo = detectarTipo(seccion.nombre);
@@ -52,6 +53,12 @@ export function GastoDialog({ vehiculoId, seccion, categorias, cuentas, open, on
       pagarEnCuotas: false,
     },
   });
+
+  // Precarga el último km conocido del vehículo al abrir — así no hay que acordarse
+  // de repetirlo a mano en cada sección, solo corregirlo si cambió.
+  useEffect(() => {
+    if (open) setValue("kilometraje", vehiculoKilometraje ?? undefined);
+  }, [open, vehiculoKilometraje, setValue]);
 
   const registrarEnFinanzas = watch("registrarEnFinanzas");
   const pagarEnCuotas = watch("pagarEnCuotas");
