@@ -82,7 +82,7 @@ function VehiculoCard({
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-7"
+                className="size-9 sm:size-7"
                 onClick={() => setEditando(true)}
               >
                 <Pencil className="size-3.5" />
@@ -90,7 +90,7 @@ function VehiculoCard({
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-7 text-destructive hover:text-destructive"
+                className="size-9 sm:size-7 text-destructive hover:text-destructive"
                 onClick={handleEliminar}
                 disabled={isPending}
               >

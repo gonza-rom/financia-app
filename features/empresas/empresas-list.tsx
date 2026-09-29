@@ -55,16 +55,16 @@ function EmpresaCard({ empresa, moneda }: { empresa: EmpresaResumen; moneda: str
                 </p>
               </div>
             </div>
-            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-7"
+                className="size-9 sm:size-7"
                 onClick={() => setEditando(true)}
               >
                 <Pencil className="size-3.5" />
               </Button>
-              <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive"
+              <Button variant="ghost" size="icon" className="size-9 sm:size-7 text-destructive hover:text-destructive"
                 onClick={handleEliminar} disabled={isPending}>
                 <Trash2 className="size-3.5" />
               </Button>

@@ -76,7 +76,7 @@ export function SeccionCard({ vehiculoId, seccion, moneda, categorias, cuentas, 
             <Button
               variant="ghost"
               size="icon"
-              className="size-7"
+              className="size-9 sm:size-7"
               onClick={() => setDialogGasto(true)}
             >
               <Plus className="size-3.5" />
@@ -84,7 +84,7 @@ export function SeccionCard({ vehiculoId, seccion, moneda, categorias, cuentas, 
             <Button
               variant="ghost"
               size="icon"
-              className="size-7"
+              className="size-9 sm:size-7"
               onClick={() => setDialogEditarSeccion(true)}
               title="Editar sección"
             >
@@ -93,7 +93,7 @@ export function SeccionCard({ vehiculoId, seccion, moneda, categorias, cuentas, 
             <Button
               variant="ghost"
               size="icon"
-              className="size-7"
+              className="size-9 sm:size-7"
               onClick={() => setExpandido(!expandido)}
             >
               {expandido
@@ -103,7 +103,7 @@ export function SeccionCard({ vehiculoId, seccion, moneda, categorias, cuentas, 
             <Button
                 variant="ghost"
                 size="icon"
-                className="size-7 text-destructive hover:text-destructive"
+                className="size-9 sm:size-7 text-destructive hover:text-destructive"
                 onClick={async () => {
                     const ok = await confirmDialog({
                       title: `¿Eliminar la sección "${seccion.nombre}"?`,
@@ -197,7 +197,7 @@ export function SeccionCard({ vehiculoId, seccion, moneda, categorias, cuentas, 
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="size-6"
+                          className="size-8 sm:size-6"
                           onClick={() => setGastoEditando(gasto)}
                           title="Editar gasto"
                         >
@@ -206,7 +206,7 @@ export function SeccionCard({ vehiculoId, seccion, moneda, categorias, cuentas, 
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="size-6 text-destructive hover:text-destructive"
+                          className="size-8 sm:size-6 text-destructive hover:text-destructive"
                           onClick={() => handleEliminarGasto(gasto.id)}
                           disabled={isPending}
                           title="Eliminar gasto"

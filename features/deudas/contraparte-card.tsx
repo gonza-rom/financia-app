@@ -436,7 +436,7 @@ function DeudaRow({ deuda, categorias, cuentas }: { deuda: Deuda; categorias: Ca
               <button
                 type="button"
                 onClick={() => setCuotasOpen((v) => !v)}
-                className="rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                className="rounded p-2 sm:p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               >
                 {cuotasOpen
                   ? <ChevronUp className="size-3.5" />
@@ -449,7 +449,7 @@ function DeudaRow({ deuda, categorias, cuentas }: { deuda: Deuda; categorias: Ca
                 type="button"
                 onClick={() => setPagosOpen((v) => !v)}
                 title="Ver pagos registrados"
-                className="rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                className="rounded p-2 sm:p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               >
                 {pagosOpen
                   ? <ChevronUp className="size-3.5" />
@@ -461,7 +461,7 @@ function DeudaRow({ deuda, categorias, cuentas }: { deuda: Deuda; categorias: Ca
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  className="rounded p-2 sm:p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                 >
                   <MoreHorizontal className="size-3.5" />
                 </button>
