@@ -86,16 +86,17 @@ export async function getVehiculoConSecciones(
   };
 }
 
-export async function getGastosSeccion(seccionId: string, pagina = 1, limite = 20) {
+export async function getGastosSeccion(seccionId: string, usuarioId: string, pagina = 1, limite = 20) {
   const skip = (pagina - 1) * limite;
+  const where = { seccionId, vehiculo: { usuarioId } };
   const [gastos, total] = await prisma.$transaction([
     prisma.gastoVehiculo.findMany({
-      where: { seccionId },
+      where,
       orderBy: { fecha: "desc" },
       skip,
       take: limite,
     }),
-    prisma.gastoVehiculo.count({ where: { seccionId } }),
+    prisma.gastoVehiculo.count({ where }),
   ]);
   return { gastos, total, totalPaginas: Math.ceil(total / limite) };
 }
