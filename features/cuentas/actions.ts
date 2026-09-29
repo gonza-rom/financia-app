@@ -2,7 +2,7 @@
 
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import type { FormularioCuenta } from "@/types/cuentas";
+import type { FormularioCuenta, FormularioTransferencia } from "@/types/cuentas";
 import { revalidatePath, revalidateTag } from "next/cache"; // ← agregar revalidateTag
 
 type Resultado<T = void> = { success: true; data: T } | { success: false; error: string };
@@ -92,11 +92,14 @@ export async function eliminarCuentaAction(id: string): Promise<Resultado> {
   try {
     const usuario = await getCurrentUser();
 
-    const count = await prisma.transaccion.count({
-      where: { cuentaId: id, usuarioId: usuario.id },
-    });
+    const [countTx, countTransf] = await Promise.all([
+      prisma.transaccion.count({ where: { cuentaId: id, usuarioId: usuario.id } }),
+      prisma.transferencia.count({
+        where: { usuarioId: usuario.id, OR: [{ cuentaOrigenId: id }, { cuentaDestinoId: id }] },
+      }),
+    ]);
 
-    if (count > 0) {
+    if (countTx > 0 || countTransf > 0) {
       await prisma.cuenta.updateMany({
         where: { id, usuarioId: usuario.id },
         data: { activo: false },
@@ -116,12 +119,11 @@ export async function eliminarCuentaAction(id: string): Promise<Resultado> {
 }
 
 export async function transferirEntreCuentasAction(
-  cuentaOrigenId: string,
-  cuentaDestinoId: string,
-  monto: number
-): Promise<Resultado> {
+  data: FormularioTransferencia
+): Promise<Resultado<{ id: string }>> {
   try {
     const usuario = await getCurrentUser();
+    const { cuentaOrigenId, cuentaDestinoId, monto, fecha, descripcion } = data;
 
     if (monto <= 0) return { success: false, error: "El monto debe ser mayor a cero." };
     if (cuentaOrigenId === cuentaDestinoId) {
@@ -136,8 +138,9 @@ export async function transferirEntreCuentasAction(
     if (!origen || !destino) return { success: false, error: "Cuenta no encontrada." };
 
     // Débito atómico y condicionado al saldo disponible (evita perder plata con transferencias concurrentes)
+    let transferenciaId: string;
     try {
-      await prisma.$transaction(async (tx) => {
+      transferenciaId = await prisma.$transaction(async (tx) => {
         const debito = await tx.cuenta.updateMany({
           where: { id: cuentaOrigenId, usuarioId: usuario.id, saldo: { gte: monto } },
           data: { saldo: { decrement: monto } },
@@ -149,6 +152,17 @@ export async function transferirEntreCuentasAction(
           where: { id: cuentaDestinoId, usuarioId: usuario.id },
           data: { saldo: { increment: monto } },
         });
+        const transferencia = await tx.transferencia.create({
+          data: {
+            monto,
+            fecha,
+            descripcion: descripcion?.trim() || null,
+            usuarioId: usuario.id,
+            cuentaOrigenId,
+            cuentaDestinoId,
+          },
+        });
+        return transferencia.id;
       });
     } catch (err) {
       if (err instanceof Error && err.message === "SALDO_INSUFICIENTE") {
@@ -160,9 +174,69 @@ export async function transferirEntreCuentasAction(
     revalidateTag("cuentas");
     revalidatePath("/cuentas");
     revalidatePath("/dashboard");
-    return { success: true, data: undefined };
+    return { success: true, data: { id: transferenciaId } };
   } catch (err) {
     console.error("[transferirEntreCuentas]", err);
     return { success: false, error: "Error al transferir." };
+  }
+}
+
+export async function eliminarTransferenciaAction(id: string): Promise<Resultado> {
+  try {
+    const usuario = await getCurrentUser();
+
+    const transferencia = await prisma.transferencia.findFirst({
+      where: { id, usuarioId: usuario.id },
+    });
+    if (!transferencia) return { success: false, error: "Transferencia no encontrada." };
+
+    const monto = Number(transferencia.monto);
+
+    await prisma.$transaction([
+      prisma.transferencia.delete({ where: { id } }),
+      // Revertir: la plata vuelve a origen, sale de destino
+      prisma.cuenta.updateMany({
+        where: { id: transferencia.cuentaOrigenId, usuarioId: usuario.id },
+        data: { saldo: { increment: monto } },
+      }),
+      prisma.cuenta.updateMany({
+        where: { id: transferencia.cuentaDestinoId, usuarioId: usuario.id },
+        data: { saldo: { decrement: monto } },
+      }),
+    ]);
+
+    revalidateTag("cuentas");
+    revalidatePath("/cuentas");
+    revalidatePath("/dashboard");
+    return { success: true, data: undefined };
+  } catch (err) {
+    console.error("[eliminarTransferencia]", err);
+    return { success: false, error: "Error al eliminar la transferencia." };
+  }
+}
+
+// Solo permite editar fecha/descripción — el monto y las cuentas quedan fijos una
+// vez creada (si te equivocaste en eso, es más seguro eliminar y volver a cargarla
+// que reversar saldos de una cuenta a otra a mano).
+export async function actualizarTransferenciaAction(
+  id: string,
+  data: { fecha?: Date; descripcion?: string }
+): Promise<Resultado> {
+  try {
+    const usuario = await getCurrentUser();
+
+    await prisma.transferencia.updateMany({
+      where: { id, usuarioId: usuario.id },
+      data: {
+        ...(data.fecha !== undefined && { fecha: data.fecha }),
+        ...(data.descripcion !== undefined && { descripcion: data.descripcion.trim() || null }),
+      },
+    });
+
+    revalidatePath("/cuentas");
+    return { success: true, data: undefined };
+  } catch (err) {
+    console.error("[actualizarTransferencia]", err);
+    return { success: false, error: "Error al actualizar la transferencia." };
   }
 }
