@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
 import { ProfileForm } from "@/features/settings/profile-form";
+import { ThemeToggle } from "@/features/settings/theme-toggle";
 
 export const metadata: Metadata = { title: "Configuración" };
 
@@ -16,6 +17,11 @@ export default async function SettingsPage() {
       <div className="rounded-xl border border-border bg-card p-6">
         <h2 className="text-sm font-semibold mb-4">Perfil</h2>
         <ProfileForm user={usuario} />
+      </div>
+      <div className="rounded-xl border border-border bg-card p-6">
+        <h2 className="text-sm font-semibold mb-1">Apariencia</h2>
+        <p className="text-xs text-muted-foreground mb-4">Elegí cómo se ve la app en este dispositivo.</p>
+        <ThemeToggle />
       </div>
     </div>
   );
