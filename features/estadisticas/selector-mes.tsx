@@ -39,14 +39,14 @@ export function SelectorMes({ anio, mes }: SelectorMesProps) {
 
   return (
     <div className="flex items-center gap-2">
-      <Button variant="outline" size="icon" className="size-8" onClick={() => navigate(-1)}>
+      <Button variant="outline" size="icon" className="size-9 sm:size-8" onClick={() => navigate(-1)}>
         <ChevronLeft className="size-4" />
       </Button>
       <span className="text-sm font-medium capitalize min-w-[140px] text-center">{label}</span>
       <Button
         variant="outline"
         size="icon"
-        className="size-8"
+        className="size-9 sm:size-8"
         onClick={() => navigate(1)}
         disabled={esMesActual}
       >

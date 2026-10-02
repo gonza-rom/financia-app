@@ -94,17 +94,17 @@ function CobroRow({
         <div className={cn(ACCIONES_FILA, "ml-auto sm:ml-0")}>
           {!cobrado && (
             <>
-              <Button variant="ghost" size="icon" className="size-7"
+              <Button variant="ghost" size="icon" className="size-9 sm:size-7"
                 onClick={() => setEditarOpen(true)} disabled={isPending} title="Editar cobro">
                 <Pencil className="size-3.5" />
               </Button>
-              <Button variant="ghost" size="icon" className="size-7 text-income hover:text-income"
+              <Button variant="ghost" size="icon" className="size-9 sm:size-7 text-income hover:text-income"
                 onClick={() => setConfirmarOpen(true)} disabled={isPending} title="Confirmar cobro">
                 <Check className="size-3.5" />
               </Button>
             </>
           )}
-          <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive"
+          <Button variant="ghost" size="icon" className="size-9 sm:size-7 text-destructive hover:text-destructive"
             onClick={handleEliminar} disabled={isPending} title="Eliminar cobro">
             <Trash2 className="size-3.5" />
           </Button>
@@ -260,22 +260,22 @@ function ProyectoCard({
             </div>
             <div className="flex items-center gap-1 shrink-0">
               {/* Botón agregar cobro */}
-              <Button variant="ghost" size="icon" className="size-7" onClick={() => setCobroOpen(true)} title="Agregar cobro">
+              <Button variant="ghost" size="icon" className="size-9 sm:size-7" onClick={() => setCobroOpen(true)} title="Agregar cobro">
                 <Plus className="size-3.5" />
               </Button>
               {/* Botón agregar gasto */}
-              <Button variant="ghost" size="icon" className="size-7" onClick={() => setGastoOpen(true)} title="Agregar gasto">
+              <Button variant="ghost" size="icon" className="size-9 sm:size-7" onClick={() => setGastoOpen(true)} title="Agregar gasto">
                 <Wallet className="size-3.5" />
               </Button>
               {/* Botón editar */}
-              <Button variant="ghost" size="icon" className="size-7" onClick={() => setEditandoOpen(true)} title="Editar proyecto">
+              <Button variant="ghost" size="icon" className="size-9 sm:size-7" onClick={() => setEditandoOpen(true)} title="Editar proyecto">
                 <Pencil className="size-3.5" />
               </Button>
               {/* Botón eliminar */}
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-7 text-destructive hover:text-destructive"
+                className="size-9 sm:size-7 text-destructive hover:text-destructive"
                 onClick={handleEliminar}
                 disabled={isPending}
                 title="Eliminar proyecto"
@@ -283,7 +283,7 @@ function ProyectoCard({
                 <Trash2 className="size-3.5" />
               </Button>
               {/* Expandir cobros y gastos */}
-              <Button variant="ghost" size="icon" className="size-7" onClick={() => setExpandido(!expandido)} title="Ver cobros y gastos">
+              <Button variant="ghost" size="icon" className="size-9 sm:size-7" onClick={() => setExpandido(!expandido)} title="Ver cobros y gastos">
                 <span className="text-xs">{expandido ? "▲" : "▼"}</span>
               </Button>
             </div>
@@ -367,10 +367,10 @@ function ClienteRow({
       <div className="flex items-center gap-2 ml-auto sm:ml-0">
         <p className="text-sm font-semibold text-income">{formatCurrency(cliente.totalGenerado, "ARS")}</p>
         <div className={ACCIONES_FILA}>
-          <Button variant="ghost" size="icon" className="size-7" onClick={() => setEditarOpen(true)} title="Editar cliente">
+          <Button variant="ghost" size="icon" className="size-9 sm:size-7" onClick={() => setEditarOpen(true)} title="Editar cliente">
             <Pencil className="size-3.5" />
           </Button>
-          <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive"
+          <Button variant="ghost" size="icon" className="size-9 sm:size-7 text-destructive hover:text-destructive"
             onClick={handleEliminar} disabled={isPending} title="Eliminar cliente">
             <Trash2 className="size-3.5" />
           </Button>
@@ -417,10 +417,10 @@ function GastoRow({
       <div className="flex items-center gap-2 ml-auto sm:ml-0">
         <p className="text-sm font-semibold text-expense">{formatCurrency(gasto.monto, moneda)}</p>
         <div className={ACCIONES_FILA}>
-          <Button variant="ghost" size="icon" className="size-7" onClick={() => setEditarOpen(true)} title="Editar gasto">
+          <Button variant="ghost" size="icon" className="size-9 sm:size-7" onClick={() => setEditarOpen(true)} title="Editar gasto">
             <Pencil className="size-3.5" />
           </Button>
-          <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive"
+          <Button variant="ghost" size="icon" className="size-9 sm:size-7 text-destructive hover:text-destructive"
             onClick={handleEliminar} disabled={isPending} title="Eliminar gasto">
             <Trash2 className="size-3.5" />
           </Button>

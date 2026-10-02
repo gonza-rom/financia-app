@@ -89,7 +89,7 @@ function FilaCategoria({
       </div>
       <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
         <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-          <Button variant="ghost" size="icon" className="size-7" onClick={() => onEditar(cat.id)}>
+          <Button variant="ghost" size="icon" className="size-9 sm:size-7" onClick={() => onEditar(cat.id)}>
             <Pencil className="size-3.5" />
           </Button>
           <DeleteCategoryButton
@@ -99,7 +99,7 @@ function FilaCategoria({
           />
         </div>
         {expandible && (
-          <Button variant="ghost" size="icon" className="size-7" onClick={onToggleExpandir} title="Ver subcategorías">
+          <Button variant="ghost" size="icon" className="size-9 sm:size-7" onClick={onToggleExpandir} title="Ver subcategorías">
             {expandido ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
           </Button>
         )}

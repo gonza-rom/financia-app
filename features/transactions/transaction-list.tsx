@@ -105,7 +105,7 @@ export function TransactionList({
                   {formatCurrency(Number(tx.monto), moneda)}
                 </span>
                 <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
-                  <Button variant="ghost" size="icon" className="size-7" onClick={() => setEditandoId(tx.id)}>
+                  <Button variant="ghost" size="icon" className="size-9 sm:size-7" onClick={() => setEditandoId(tx.id)}>
                     <Pencil className="size-3.5" />
                   </Button>
                   <DeleteTransactionButton id={tx.id} />

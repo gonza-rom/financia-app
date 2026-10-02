@@ -52,7 +52,7 @@ export function DeleteCategoryButton({ id, cantidadTransacciones, cantidadSubcat
     <Button
       variant="ghost"
       size="icon"
-      className="size-7 text-destructive hover:text-destructive"
+      className="size-9 sm:size-7 text-destructive hover:text-destructive"
       onClick={handleDelete}
       disabled={isPending}
     >
