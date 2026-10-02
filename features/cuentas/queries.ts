@@ -1,7 +1,7 @@
 // features/cuentas/queries.ts
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import type { CuentaConStats } from "@/types/cuentas";
+import type { CuentaConStats, TransferenciaConCuentas } from "@/types/cuentas";
 import { unstable_cache } from "next/cache";
 
 export const getCachedCuentas = unstable_cache(
@@ -30,6 +30,24 @@ export async function getCuentas(usuarioId: string) {
   });
   return cuentas.map((c) => ({ ...c, saldo: Number(c.saldo) }));
 }
+
+export const getCachedTransferencias = unstable_cache(
+  async (usuarioId: string, limite = 10): Promise<TransferenciaConCuentas[]> => {
+    const transferencias = await prisma.transferencia.findMany({
+      where: { usuarioId },
+      include: {
+        cuentaOrigen: { select: { id: true, nombre: true, color: true } },
+        cuentaDestino: { select: { id: true, nombre: true, color: true } },
+      },
+      orderBy: { fecha: "desc" },
+      take: limite,
+    });
+
+    return transferencias.map((t) => ({ ...t, monto: Number(t.monto) }));
+  },
+  ["transferencias"],
+  { revalidate: 60, tags: ["cuentas"] }
+);
 
 export const getCachedSaldoTotalCuentas = unstable_cache(
   async (usuarioId: string): Promise<number> => {

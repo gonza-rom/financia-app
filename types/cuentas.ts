@@ -1,7 +1,21 @@
 // types/cuentas.ts
-import type { Cuenta, TipoCuenta } from "@prisma/client";
+import type { Cuenta, TipoCuenta, Transferencia } from "@prisma/client";
 
-export type { Cuenta, TipoCuenta };
+export type { Cuenta, TipoCuenta, Transferencia };
+
+export interface TransferenciaConCuentas extends Omit<Transferencia, "monto"> {
+  monto: number;
+  cuentaOrigen: { id: string; nombre: string; color: string };
+  cuentaDestino: { id: string; nombre: string; color: string };
+}
+
+export interface FormularioTransferencia {
+  cuentaOrigenId: string;
+  cuentaDestinoId: string;
+  monto: number;
+  fecha: Date;
+  descripcion?: string;
+}
 
 export interface CuentaConStats extends Omit<Cuenta, "saldo"> {
   saldo: number;

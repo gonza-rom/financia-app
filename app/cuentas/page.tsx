@@ -1,8 +1,10 @@
 // app/cuentas/page.tsx
 import { getCurrentUser } from "@/lib/auth";
-import { getCachedCuentas, getCachedSaldoTotalCuentas } from "@/features/cuentas/queries";
+import { getCachedCuentas, getCachedSaldoTotalCuentas, getCachedTransferencias } from "@/features/cuentas/queries";
 import { CuentaCard } from "@/features/cuentas/cuenta-card";
 import { NuevaCuentaButton } from "@/features/cuentas/nueva-cuenta-button";
+import { NuevaTransferenciaButton } from "@/features/cuentas/nueva-transferencia-dialog";
+import { TransferenciasList } from "@/features/cuentas/transferencias-list";
 import { formatCurrency } from "@/lib/utils";
 import { Wallet } from "lucide-react";
 
@@ -12,21 +14,25 @@ export default async function CuentasPage() {
   const usuario = await getCurrentUser();
   const moneda = usuario.moneda ?? "ARS";
 
-  const [cuentas, saldoTotal] = await Promise.all([
+  const [cuentas, saldoTotal, transferencias] = await Promise.all([
     getCachedCuentas(usuario.id),
     getCachedSaldoTotalCuentas(usuario.id),
+    getCachedTransferencias(usuario.id),
   ]);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Cuentas</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             Administrá tus cuentas y saldos
           </p>
         </div>
-        <NuevaCuentaButton />
+        <div className="flex items-center gap-2">
+          {cuentas.length >= 2 && <NuevaTransferenciaButton cuentas={cuentas} moneda={moneda} />}
+          <NuevaCuentaButton />
+        </div>
       </div>
 
       <div className="rounded-xl border border-border bg-card p-5 flex items-center gap-4">
@@ -56,6 +62,8 @@ export default async function CuentasPage() {
           ))}
         </div>
       )}
+
+      <TransferenciasList transferencias={transferencias} moneda={moneda} />
     </div>
   );
 }
